@@ -9,7 +9,9 @@
 /* Begin PBXBuildFile section */
 		72F30E151F30926C0065D887 /* Stated.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72F30E0B1F30926C0065D887 /* Stated.framework */; };
 		72F30E1A1F30926C0065D887 /* StatedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E191F30926C0065D887 /* StatedTests.swift */; };
-		72F30E1C1F30926C0065D887 /* Stated.h in Headers */ = {isa = PBXBuildFile; fileRef = 72F30E0E1F30926C0065D887 /* Stated.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		72F30E261F30928B0065D887 /* StateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E251F30928B0065D887 /* StateMachine.swift */; };
+		72F30E281F30929A0065D887 /* StateMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E271F30929A0065D887 /* StateMapping.swift */; };
+		72F30E2A1F3093060065D887 /* StateTransition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E291F3093060065D887 /* StateTransition.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,11 +26,13 @@
 
 /* Begin PBXFileReference section */
 		72F30E0B1F30926C0065D887 /* Stated.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Stated.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		72F30E0E1F30926C0065D887 /* Stated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Stated.h; sourceTree = "<group>"; };
 		72F30E0F1F30926C0065D887 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		72F30E141F30926C0065D887 /* StatedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StatedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		72F30E191F30926C0065D887 /* StatedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatedTests.swift; sourceTree = "<group>"; };
 		72F30E1B1F30926C0065D887 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		72F30E251F30928B0065D887 /* StateMachine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateMachine.swift; sourceTree = "<group>"; };
+		72F30E271F30929A0065D887 /* StateMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateMapping.swift; sourceTree = "<group>"; };
+		72F30E291F3093060065D887 /* StateTransition.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateTransition.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,8 +75,10 @@
 		72F30E0D1F30926C0065D887 /* Stated */ = {
 			isa = PBXGroup;
 			children = (
-				72F30E0E1F30926C0065D887 /* Stated.h */,
 				72F30E0F1F30926C0065D887 /* Info.plist */,
+				72F30E251F30928B0065D887 /* StateMachine.swift */,
+				72F30E271F30929A0065D887 /* StateMapping.swift */,
+				72F30E291F3093060065D887 /* StateTransition.swift */,
 			);
 			path = Stated;
 			sourceTree = "<group>";
@@ -93,7 +99,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				72F30E1C1F30926C0065D887 /* Stated.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -148,6 +153,7 @@
 				TargetAttributes = {
 					72F30E0A1F30926C0065D887 = {
 						CreatedOnToolsVersion = 8.3.3;
+						LastSwiftMigration = 0830;
 						ProvisioningStyle = Automatic;
 					};
 					72F30E131F30926C0065D887 = {
@@ -196,6 +202,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72F30E2A1F3093060065D887 /* StateTransition.swift in Sources */,
+				72F30E281F30929A0065D887 /* StateMapping.swift in Sources */,
+				72F30E261F30928B0065D887 /* StateMachine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -322,6 +331,7 @@
 		72F30E201F30926C0065D887 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "";
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -333,6 +343,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordanhamill.Stated;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
@@ -340,6 +351,7 @@
 		72F30E211F30926C0065D887 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "";
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -358,6 +370,7 @@
 		72F30E231F30926C0065D887 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				INFOPLIST_FILE = StatedTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordanhamill.StatedTests;
@@ -369,6 +382,7 @@
 		72F30E241F30926C0065D887 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				INFOPLIST_FILE = StatedTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordanhamill.StatedTests;
