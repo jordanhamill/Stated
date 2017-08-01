@@ -44,7 +44,7 @@ class AppLauncher {
 
     // MARK: Lifecycle
 
-    init(upgradeService: Upgrade, apiService: APIService, rootViewController: RootViewController) {
+    init(upgradeService: Upgrade, apiService: APIService, db: PersistenceService, rootViewController: RootViewController) {
 
         func canLogIn() -> Bool {
             return !apiService.account.username.isEmpty && apiService.account.hasPassword()
@@ -66,7 +66,7 @@ class AppLauncher {
         }
 
         func indexDatabase(send: @escaping (Input) -> Void) {
-            Persistence.service.createSecondaryIndices(on: SharedNote.self)
+            db.createSecondaryIndices(on: SharedNote.self)
 
             if canLogIn() {
                 send(.logIn)
@@ -83,7 +83,7 @@ class AppLauncher {
         }
 
         func logOut(send:  @escaping (Input) -> Void) {
-            APIRequest.clearAuthentication()
+            apiService.clearAuthentication()
             rootViewController.showLoginViewController {
                 // Login successful callback
                 send(.logIn)
