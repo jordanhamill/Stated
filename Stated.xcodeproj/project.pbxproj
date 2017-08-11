@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		72C7254C1F3DE0EA006FCA1E /* AnotherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C7254B1F3DE0EA006FCA1E /* AnotherTests.swift */; };
 		72F30E151F30926C0065D887 /* Stated.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72F30E0B1F30926C0065D887 /* Stated.framework */; };
 		72F30E1A1F30926C0065D887 /* StatedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E191F30926C0065D887 /* StatedTests.swift */; };
 		72F30E261F30928B0065D887 /* StateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E251F30928B0065D887 /* StateMachine.swift */; };
@@ -25,6 +26,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		72C7254B1F3DE0EA006FCA1E /* AnotherTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnotherTests.swift; sourceTree = "<group>"; };
 		72F30E0B1F30926C0065D887 /* Stated.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Stated.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		72F30E0F1F30926C0065D887 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		72F30E141F30926C0065D887 /* StatedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StatedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,6 +90,7 @@
 			children = (
 				72F30E191F30926C0065D887 /* StatedTests.swift */,
 				72F30E1B1F30926C0065D887 /* Info.plist */,
+				72C7254B1F3DE0EA006FCA1E /* AnotherTests.swift */,
 			);
 			path = StatedTests;
 			sourceTree = "<group>";
@@ -213,6 +216,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				72F30E1A1F30926C0065D887 /* StatedTests.swift in Sources */,
+				72C7254C1F3DE0EA006FCA1E /* AnotherTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,6 +414,7 @@
 				72F30E211F30926C0065D887 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		72F30E221F30926C0065D887 /* Build configuration list for PBXNativeTarget "StatedTests" */ = {
 			isa = XCConfigurationList;
@@ -418,6 +423,7 @@
 				72F30E241F30926C0065D887 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

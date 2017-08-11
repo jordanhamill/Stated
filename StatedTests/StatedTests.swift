@@ -1,51 +1,91 @@
 import XCTest
 //import Stated
 
-public protocol StateType: Equatable { }
+public class StateTransition<InputArgs, LocalStateFrom, LocalStateTo> {
+    let from: _IStateSlotWithLocalData<LocalStateFrom>
+    let to: IStateSlot<InputArgs, LocalStateFrom, LocalStateTo>
 
-public struct StateTransition<State: StateType> {
-    let from: State
-    let to: State
+    init(from: _IStateSlotWithLocalData<LocalStateFrom>, to: IStateSlot<InputArgs, LocalStateFrom, LocalStateTo>) {
+        self.from = from
+        self.to = to
+    }
+
+    func trigger(withInput input: InputArgs, stateMachine: StateMachine) {
+        let castLocalState = stateMachine.currentState.localState as! LocalStateFrom
+        let nextStateLocalState = to.mapInput(input, castLocalState)
+        let nextState = StateMachine.State(
+            slotUuid: to.uuid,
+            localState: nextStateLocalState
+        )
+        stateMachine.setNextState(state: nextState)
+    }
 }
 
 infix operator =>: MultiplicationPrecedence
-public func =><State: StateType>(from: State, to: State) -> StateTransition<State> {
-    return StateTransition(from: from, to: to)
+public func =><InputArgs, LocalStateFrom, LocalStateTo>(from: _IStateSlotWithLocalData<LocalStateFrom>, to: IStateSlot<InputArgs, LocalStateFrom, LocalStateTo>) -> StateTransition<InputArgs, LocalStateFrom, LocalStateTo> {
+    return from.to(to)
 }
 
 
-public class ErasedStateTransitionTrigger<State: StateType> {
 
-}
+public class ErasedStateTransitionTrigger {
+    let inputUuid: String
+    private let trigger: (Any, StateMachine) -> Bool
 
-public class StateTransitionTrigger<State: StateType, Arguments>: ErasedStateTransitionTrigger<State> {
-    let inputSlot: InputSlot<Arguments>
-    let transition: StateTransition<State>
+    init(inputUuid: String, trigger: @escaping (Any, StateMachine) -> Bool) {
+        self.inputUuid = inputUuid
+        self.trigger = trigger
+    }
 
-
-    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<State>) {
-        self.inputSlot = inputSlot
-        self.transition = transition
+    func tryTransition(args: Any, stateMachine: StateMachine) -> Bool {
+        return trigger(args, stateMachine)
     }
 }
 
-public class StateTransitionTriggerWithSideEffect<State: StateType, Arguments>: StateTransitionTrigger<State, Arguments> {
-    public var sideEffect: (InputSlot<Arguments>, State, State, Arguments) -> Void = { _ in }
+public class StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>: ErasedStateTransitionTrigger {
+    let inputSlot: InputSlot<Arguments>
+    let transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>
 
-    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<State>, sideEffect: @escaping (InputSlot<Arguments>, State, State, Arguments) -> Void) {
+    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) {
+        self.inputSlot = inputSlot
+        self.transition = transition
+        super.init(inputUuid: inputSlot.uuid, trigger: { (args: Any, stateMachine: StateMachine) in
+            guard stateMachine.currentState.slotUuid == transition.from.uuid else { return false }
+            guard let typedArgs = args as? Arguments else { return false }
+
+            transition.trigger(withInput: typedArgs, stateMachine: stateMachine)
+            return true
+        })
+    }
+}
+
+public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo>: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
+    public var sideEffect: (InputSlot<Arguments>, _IStateSlotWithLocalData<LocalStateFrom>, IStateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
+
+    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, _IStateSlotWithLocalData<LocalStateFrom>, IStateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
         self.sideEffect = sideEffect
         super.init(inputSlot: inputSlot, transition: transition)
     }
+
+    override func tryTransition(args: Any, stateMachine: StateMachine) -> Bool {
+        let transitioned = super.tryTransition(args: args, stateMachine: stateMachine)
+        if transitioned {
+            sideEffect(inputSlot, transition.from, transition.to, args as! Arguments)
+        }
+        return transitioned
+    }
 }
 
 
-public func |<State: StateType, Arguments>(input: InputSlot<Arguments>, transition: StateTransition<State>) -> StateTransitionTrigger<State, Arguments> {
+public func |<Arguments, LocalStateFrom, LocalStateTo>(input: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
     return StateTransitionTrigger(inputSlot: input, transition: transition)
 }
 
-infix operator ~>: AdditionPrecedence
-public func |<State: StateType, Arguments>(transitionTrigger: StateTransitionTrigger<State, Arguments>, effect: @escaping (InputSlot<Arguments>, State, State, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<State, Arguments> {
-    return StateTransitionTriggerWithSideEffect(inputSlot: transitionTrigger.inputSlot, transition: transitionTrigger.transition, sideEffect: effect)
+
+public func |<Arguments, LocalStateFrom, LocalStateTo>(
+    transitionTrigger: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>,
+    effect: @escaping (InputSlot<Arguments>, _IStateSlotWithLocalData<LocalStateFrom>, IStateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
+        return StateTransitionTriggerWithSideEffect(inputSlot: transitionTrigger.inputSlot, transition: transitionTrigger.transition, sideEffect: effect)
 }
 
 public struct InputSlot<Arguments>: Equatable, Hashable {
@@ -55,21 +95,17 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
         self.uuid = UUID().uuidString
     }
 
-    public func withArgs<State: StateType>(_ args: Arguments) -> StateMachineInput<State> {
+    public func withArgs(_ args: Arguments) -> StateMachineInput {
         return { sm in
-            for erasedTransitionTrigger in sm.mappings {
-                guard let transitionTrigger = erasedTransitionTrigger as? StateTransitionTrigger<State, Arguments> else { continue }
-                guard transitionTrigger.inputSlot.uuid == self.uuid else { continue }
+            guard let potentialTransitions = sm.inputToTransitionTriggers[self.uuid] else { return }
 
-                // Found transition for this input
-                let currentState = sm.currentState
-                guard transitionTrigger.transition.from == currentState else { continue }
-                // Found a transition that can execute for this state
-                let newState = transitionTrigger.transition.to
-                sm.setNextState(state: newState)
-                guard let transitionTriggerWithEffect = transitionTrigger as? StateTransitionTriggerWithSideEffect<State, Arguments> else { return }
-                transitionTriggerWithEffect.sideEffect(self, currentState, newState, args)
+            for erasedTransitionTrigger in potentialTransitions {
+                if erasedTransitionTrigger.tryTransition(args: args, stateMachine: sm) {
+                    return
+                }
             }
+
+            fatalError("Undefined transition")
         }
     }
 
@@ -82,19 +118,54 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
     }
 }
 
-public typealias StateMachineInput<State: StateType> = (StateMachine<State>) -> Void
-public class StateMachine<State: StateType> {
+public func ==<InputArgs, PreviousLocalState, LocalState>(lhs: StateMachine.State, rhs: IStateSlot<InputArgs, PreviousLocalState, LocalState>) -> Bool {
+    return lhs.slotUuid == rhs.uuid
+}
 
-    fileprivate let mappings: [ErasedStateTransitionTrigger<State>]
-    fileprivate var currentState: State
+public typealias StateMachineInput = (StateMachine) -> Void
+public class StateMachine {
+    public struct State: Equatable {
+        let slotUuid: String
+        let localState: Any?
 
-    init(initialState: State, mappings: [ErasedStateTransitionTrigger<State>]) {
-        self.currentState = initialState
-        self.mappings = mappings
+        public static func ==(lhs: State, rhs: State) -> Bool {
+            return lhs.slotUuid == rhs.slotUuid
+        }
     }
 
-    func send(_ input: StateMachineInput<State>) {
+    fileprivate let mappings: [ErasedStateTransitionTrigger]
+    fileprivate let inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]]
+    fileprivate var currentState: State
+
+    init(initialState: StateSlot, mappings: [ErasedStateTransitionTrigger]) {
+        self.currentState = State(slotUuid: initialState.uuid, localState: nil)
+        self.mappings = mappings
+
+        var inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]] = [:]
+        for transitionTrigger in mappings {
+            var triggers = inputToTransitionTriggers[transitionTrigger.inputUuid] ?? []
+            triggers.append(transitionTrigger)
+            inputToTransitionTriggers[transitionTrigger.inputUuid] = triggers
+        }
+        self.inputToTransitionTriggers = inputToTransitionTriggers
+    }
+
+    init<InputArgs, PreviousLocalState, LocalState>(initialState: IStateSlot<InputArgs, PreviousLocalState, LocalState>, localState: LocalState, mappings: [ErasedStateTransitionTrigger]) {
+        self.currentState = State(slotUuid: initialState.uuid, localState: localState)
+        self.mappings = mappings
+
+        var inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]] = [:]
+        for transitionTrigger in mappings {
+            var triggers = inputToTransitionTriggers[transitionTrigger.inputUuid] ?? []
+            triggers.append(transitionTrigger)
+            inputToTransitionTriggers[transitionTrigger.inputUuid] = triggers
+        }
+        self.inputToTransitionTriggers = inputToTransitionTriggers
+    }
+
+    func send(_ input: StateMachineInput) {
         input(self)
+        print("Done")
     }
 
     func setNextState(state: State) {
@@ -104,46 +175,56 @@ public class StateMachine<State: StateType> {
 
 class StatedTests: XCTestCase {
 
-    enum State: StateType {
-        case uninitialized
-        case initializing
-        case indexingDatabase
-        case loggedIn
+    struct States {
+        static let uninitialized = IStateSlot<Void, Void, Void> { (_, _) in
+            return
+        }
+        static let initializing = IStateSlot<Bool, Void, Bool> { input, previousState in
+            return input
+        }
+
+        static let indexing = IStateSlot<Void, Bool, Void> { _, _ in
+            return
+        }
     }
 
-    var stateMachine: StateMachine<State>!
+    struct Inputs {
+        static let initialize = InputSlot<Bool>()
+        static let indexDatabase = InputSlot<Void>()
+        static let logIn = InputSlot<String>()
+    }
+
+    var stateMachine: StateMachine!
 
     override func setUp() {
 
-        struct Inputs {
-            static let initialize = InputSlot<Bool>()
-            static let indexDatabase = InputSlot<()>()
-            static let logIn = InputSlot<String>()
+        func initializeThing(input: InputSlot<Bool>, fromState: _IStateSlotWithLocalData<Void>, toState: IStateSlot<Bool, Void, Bool>, offline: Bool) {
+            print("Side effects bitches")
         }
 
-        func initializeThing(input: InputSlot<Bool>, fromState: State, toState: State, offline: Bool) {
-
+        func indexStuff(input: InputSlot<Void>, fromState: _IStateSlotWithLocalData<Bool>, toState: IStateSlot<Void, Bool, Void>, _: Void) {
+            print("Indexing")
         }
 
-        let mappings: [ErasedStateTransitionTrigger<State>] =  [
-            // Input          |    from         =>    to           | side effect
-            Inputs.initialize |  .uninitialized =>  .initializing  | initializeThing
+        let mappings: [ErasedStateTransitionTrigger] =  [
+            // Input             |    from         =>    to                     | side effect
+            Inputs.initialize    |  States.uninitialized => States.initializing | initializeThing,
+            Inputs.indexDatabase |  States.initializing  => States.indexing     | indexStuff
 
 //            (Inputs.logIn |  .indexingDatabase =>  .loggedIn) ~> initializeThing
         ]
 
-        stateMachine = StateMachine(initialState: .uninitialized, mappings: mappings)
+        let initial = States.uninitialized
+        stateMachine = StateMachine(initialState: initial, localState: (), mappings: mappings)
 
         stateMachine.send(Inputs.initialize.withArgs(true))
-
-
-        print(mappings)
-        print(mappings[0])
     }
 
     func testExample() {
+        XCTAssert(stateMachine.currentState == States.initializing)
 
-        XCTAssert(true)
+        stateMachine.send(Inputs.indexDatabase.withArgs())
+        XCTAssert(stateMachine.currentState == States.indexing)
     }
 }
 
