@@ -117,12 +117,12 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
     }
 }
 
-public func input<Arguments>() -> InputSlot<Arguments> {
+public func input() -> InputSlot<Void> {
     return InputSlot()
 }
 
-public func Arguments<Arguments>(taking: Arguments.Type) -> InputSlot<Arguments> {
-    return input()
+public func input<Arguments>(taking: Arguments.Type) -> InputSlot<Arguments> {
+    return InputSlot()
 }
 
 public func ==<Arguments, PreviousLocalState, LocalState>(lhs: StateMachine.State<Any?>, rhs: StateSlot<Arguments, PreviousLocalState, LocalState>) -> Bool {
@@ -144,7 +144,7 @@ public class StateMachine {
     fileprivate let inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]]
     fileprivate var currentState: State<Any?>
 
-    init<Arguments, PreviousLocalState, LocalState>(initialState: StateSlot<Arguments, PreviousLocalState, LocalState>, localState: LocalState, mappings: [ErasedStateTransitionTrigger]) {
+    public init<Arguments, PreviousLocalState, LocalState>(initialState: StateSlot<Arguments, PreviousLocalState, LocalState>, localState: LocalState, mappings: [ErasedStateTransitionTrigger]) {
         self.currentState = State(slotUuid: initialState.uuid, localState: localState)
         self.mappings = mappings
 
@@ -157,11 +157,11 @@ public class StateMachine {
         self.inputToTransitionTriggers = inputToTransitionTriggers
     }
 
-    func send(_ Arguments: StateMachineInput) {
+    public func send(_ Arguments: StateMachineInput) {
         Arguments(self)
     }
 
-    func send(_ Arguments: InputSlot<Void>) {
+    public func send(_ Arguments: InputSlot<Void>) {
         Arguments.withArgs(())(self)
     }
 
@@ -175,59 +175,194 @@ class StatedTests: XCTestCase {
 //        case t = StateSlot()
 //    }
 
-    struct States {
-        static let uninitialized = state() //StateSlot<Void, Void, Void>.slot()
-
-        static let initializing = state(takingInput: { (Arguments: Bool) in
-            return Arguments
-        })
-
-        static let indexing = state(discardingPreviousState: Bool.self)// StateSlot<Void, Bool, Void>.slot() This only allows similarly shaped previous states...
-
-        static let loggedIn = state(usingPreviousState: { (previous: Bool) in
-            return ("test", previous)
-        })
-
-        static let done = state(taking: { (Arguments: String, previous: Bool) in
-            return "\(Arguments) \(previous)"
-        })
+    enum LaunchedFrom {
+        case fresh
+        case url(URL)
     }
 
-    struct Inputs {
-        static let initialize = Arguments(taking: Bool.self)
-        static let indexDatabase = InputSlot<Void>()
-        static let logIn = InputSlot<String>()
+    enum DeepLink {
+        case viewPost(String)
+        case friendRequest(String)
     }
 
-    var stateMachine: StateMachine!
+    struct Account {
+        let email: String
+        var name: String
+    }
 
+    class LoggedInState {
+        let account: Account
+
+        struct States {
+            static let timeline = state()
+            static let friends = state()
+            static let profile = state()
+        }
+
+        struct Inputs {
+            static let viewTimeline = input()
+            static let viewFriends = input()
+            static let viewProfile = input()
+        }
+
+        private var machine: StateMachine!
+
+        init(account: Account, deepLink: DeepLink?) {
+            self.account = account
+
+            let mappings: [ErasedStateTransitionTrigger] = [
+                Inputs.viewTimeline | States.friends  => States.timeline,
+                Inputs.viewProfile  | States.friends  => States.profile,
+
+                Inputs.viewProfile  | States.timeline => States.profile,
+                Inputs.viewFriends  | States.timeline => States.friends,
+
+                Inputs.viewFriends  | States.profile  => States.friends,
+                Inputs.viewTimeline | States.profile  => States.timeline,
+            ]
+
+            self.machine = StateMachine(initialState: States.timeline, localState: (), mappings: mappings)
+
+            if let deepLink = deepLink {
+                switch deepLink {
+                case .viewPost(let postId):
+                    machine.send(Inputs.viewTimeline.withArgs(()))
+                case .friendRequest(let requestId):
+                    machine.send(Inputs.viewFriends.withArgs(()))
+                }
+            }
+        }
+
+    }
+
+    class AppLauncher {
+        struct States {
+            static let uninitialized = state()
+            static let initialized = state() // This now forward on as a composed up state of `FromUrl`/Deep navigation link destination for app
+            static let upgrading = state()
+            static let indexing = state() // vc state - inject in completion
+            static let loggedOut = state()
+            static let loggedIn = state() // Pass in Account and store it in state as well as deep link destination - imagine account being manipulated by VCs - create another state machine for an internal tab bar?
+        }
+
+        struct Inputs {
+            static let initialize = input() // Input FromUrl
+            static let upgrade = input()
+            static let indexDatabase = input()
+            static let logIn = input() // Take in Account
+            static let logOut = input()
+        }
+
+        // MARK: Private propteries
+
+        private var machine: StateMachine!
+
+        // MARK: Lifecycle
+
+        init() {
+
+            func canLogIn() -> Bool {
+                return true
+            }
+
+//            func initialize(send: @escaping (Input) -> Void) {
+//                if true {
+//                    send(.upgrade)
+//                } else {
+//                    send(.indexDatabase)
+//                }
+//            }
+//
+//            func upgrade(send: @escaping (Input) -> Void) {
+//                rootViewController.showUpgradeController(upgradeService: upgradeService) {
+//                    // Upgrade successful callback
+//                    send(.indexDatabase)
+//                }
+//            }
+//
+//            func indexDatabase(send: @escaping (Input) -> Void) {
+//                db.createSecondaryIndices(on: SharedNote.self)
+//
+//                if canLogIn() {
+//                    send(.logIn)
+//                } else {
+//                    send(.logOut)
+//                }
+//            }
+//
+//            func logIn(send: @escaping (Input) -> Void) {
+//                rootViewController.showTourListViewController {
+//                    // Log out callback
+//                    send(.logOut)
+//                }
+//            }
+//
+//            func logOut(send:  @escaping (Input) -> Void) {
+//                apiService.clearAuthentication()
+//                rootViewController.showLoginViewController {
+//                    // Login successful callback
+//                    send(.logIn)
+//                }
+//            }
+
+            let mappings: [ErasedStateTransitionTrigger] = [
+                /* Input              |           from             to                 |   effect    */
+                Inputs.initialize     | States.uninitialized => States.initialized, //| initialize,
+
+                Inputs.upgrade        | States.initialized   => States.upgrading,   //| upgrade,
+
+                Inputs.indexDatabase  | States.initialized   => States.indexing,    //| indexDatabase,
+                Inputs.indexDatabase  | States.upgrading     => States.indexing,    //| indexDatabase,
+
+                Inputs.logIn          | States.indexing      => States.loggedIn,    //| logIn,
+                Inputs.logIn          | States.loggedOut     => States.loggedIn,    //| logIn,
+                
+                Inputs.logOut         | States.indexing      => States.loggedOut,   //| logOut,
+                Inputs.logOut         | States.loggedIn      => States.loggedOut    //| logOut
+            ]
+            
+            machine = StateMachine(initialState: States.uninitialized, localState: (), mappings: mappings)
+        }
+        
+        // MARK: Internal methods
+        
+        func initialize() {
+            machine.send(Inputs.initialize)
+        }
+    }
+
+    var appLauncher: AppLauncher!
     override func setUp() {
-
+        appLauncher = AppLauncher()
         // TODO Make state sig nicer
-        func initializeThing(Arguments: InputSlot<Bool>, fromState: StateSlotWithLocalData<Void>, toState: StateSlot<Bool, Void, Bool>, offline: Bool) {
-            print("Side effects bitches")
-        }
-
-        func indexStuff(Arguments: InputSlot<Void>, fromState: StateSlotWithLocalData<Bool>, toState: StateSlot<Void, Bool, Void>, _: Void) {
-            print("Indexing")
-        }
-
-        let mappings: [ErasedStateTransitionTrigger] =  [
-            // Input             |          from         =>    to               | side effect
-            Inputs.initialize    |  States.uninitialized => States.initializing | initializeThing,
-            Inputs.indexDatabase |  States.initializing  => States.indexing     | indexStuff
-        ]
-
-        let initial = States.uninitialized
-        stateMachine = StateMachine(initialState: initial, localState: (), mappings: mappings)
+//        func initializeThing(Arguments: InputSlot<Bool>, fromState: StateSlotWithLocalData<Void>, toState: StateSlot<Bool, Void, Bool>, offline: Bool) {
+//            print("Side effects bitches")
+//        }
+//
+//        func indexStuff(Arguments: InputSlot<Void>, fromState: StateSlotWithLocalData<Bool>, toState: StateSlot<Void, Bool, Void>, _: Void) {
+//            print("Indexing")
+//        }
+//
+//
+//
+//        let mappings: [ErasedStateTransitionTrigger] =  [
+//            // Input             |          from         =>    to               | side effect
+//            Inputs.initialize    |  States.uninitialized => States.initializing | initializeThing,
+//            Inputs.indexDatabase |  States.initializing  => States.indexing     | indexStuff,
+//
+////            Inputs.logIn         |  States.initializing  => States.loggedIn//     | indexStuff
+//        ]
+//
+//        let initial = States.uninitialized
+//        stateMachine = StateMachine(initialState: initial, localState: (), mappings: mappings)
     }
 
     func testExample() {
-        stateMachine.send(Inputs.initialize.withArgs(true))
-        XCTAssert(stateMachine.currentState == States.initializing)
-
-        stateMachine.send(Inputs.indexDatabase)
-        XCTAssert(stateMachine.currentState == States.indexing)
+        appLauncher.initialize()
+//        XCTAssert(stateMachine.currentState == States.initializing)
+//
+//        stateMachine.send(Inputs.indexDatabase)
+//        XCTAssert(stateMachine.currentState == States.indexing)
 
         // todo build composite state machine - can it be formalized as nicely as article
     }
