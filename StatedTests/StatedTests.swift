@@ -1,19 +1,18 @@
 import XCTest
 //import Stated
 
-public class StateTransition<InputArgs, LocalStateFrom, LocalStateTo> {
-    let from: _IStateSlotWithLocalData<LocalStateFrom>
-    let to: IStateSlot<InputArgs, LocalStateFrom, LocalStateTo>
+public class StateTransition<Arguments, LocalStateFrom, LocalStateTo> {
+    let from: StateSlotWithLocalData<LocalStateFrom>
+    let to: StateSlot<Arguments, LocalStateFrom, LocalStateTo>
 
-    init(from: _IStateSlotWithLocalData<LocalStateFrom>, to: IStateSlot<InputArgs, LocalStateFrom, LocalStateTo>) {
+    init(from: StateSlotWithLocalData<LocalStateFrom>, to: StateSlot<Arguments, LocalStateFrom, LocalStateTo>) {
         self.from = from
         self.to = to
     }
 
-    func trigger(withInput input: InputArgs, stateMachine: StateMachine) {
-        let castLocalState = stateMachine.currentState.localState as! LocalStateFrom
-        let nextStateLocalState = to.mapInput(input, castLocalState)
-        let nextState = StateMachine.State(
+    func trigger(withInput Arguments: Arguments, stateMachine: StateMachine) {
+        let nextStateLocalState = to.mapInput(Arguments, stateMachine.currentState.localState as! LocalStateFrom)
+        let nextState = StateMachine.State<Any?>(
             slotUuid: to.uuid,
             localState: nextStateLocalState
         )
@@ -22,7 +21,7 @@ public class StateTransition<InputArgs, LocalStateFrom, LocalStateTo> {
 }
 
 infix operator =>: MultiplicationPrecedence
-public func =><InputArgs, LocalStateFrom, LocalStateTo>(from: _IStateSlotWithLocalData<LocalStateFrom>, to: IStateSlot<InputArgs, LocalStateFrom, LocalStateTo>) -> StateTransition<InputArgs, LocalStateFrom, LocalStateTo> {
+public func =><Arguments, LocalStateFrom, LocalStateTo>(from: StateSlotWithLocalData<LocalStateFrom>, to: StateSlot<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransition<Arguments, LocalStateFrom, LocalStateTo> {
     return from.to(to)
 }
 
@@ -60,9 +59,9 @@ public class StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>: Er
 }
 
 public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo>: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
-    public var sideEffect: (InputSlot<Arguments>, _IStateSlotWithLocalData<LocalStateFrom>, IStateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
+    public var sideEffect: (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
 
-    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, _IStateSlotWithLocalData<LocalStateFrom>, IStateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
+    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
         self.sideEffect = sideEffect
         super.init(inputSlot: inputSlot, transition: transition)
     }
@@ -77,14 +76,14 @@ public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, Loc
 }
 
 
-public func |<Arguments, LocalStateFrom, LocalStateTo>(input: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
-    return StateTransitionTrigger(inputSlot: input, transition: transition)
+public func |<Arguments, LocalStateFrom, LocalStateTo>(Arguments: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
+    return StateTransitionTrigger(inputSlot: Arguments, transition: transition)
 }
 
 
 public func |<Arguments, LocalStateFrom, LocalStateTo>(
     transitionTrigger: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>,
-    effect: @escaping (InputSlot<Arguments>, _IStateSlotWithLocalData<LocalStateFrom>, IStateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
+    effect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
         return StateTransitionTriggerWithSideEffect(inputSlot: transitionTrigger.inputSlot, transition: transitionTrigger.transition, sideEffect: effect)
 }
 
@@ -97,7 +96,7 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
 
     public func withArgs(_ args: Arguments) -> StateMachineInput {
         return { sm in
-            guard let potentialTransitions = sm.inputToTransitionTriggers[self.uuid] else { return }
+            guard let potentialTransitions = sm.inputToTransitionTriggers[self.uuid] else { fatalError("Undefined transition") }
 
             for erasedTransitionTrigger in potentialTransitions {
                 if erasedTransitionTrigger.tryTransition(args: args, stateMachine: sm) {
@@ -118,15 +117,23 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
     }
 }
 
-public func ==<InputArgs, PreviousLocalState, LocalState>(lhs: StateMachine.State, rhs: IStateSlot<InputArgs, PreviousLocalState, LocalState>) -> Bool {
+public func input<Arguments>() -> InputSlot<Arguments> {
+    return InputSlot()
+}
+
+public func Arguments<Arguments>(taking: Arguments.Type) -> InputSlot<Arguments> {
+    return input()
+}
+
+public func ==<Arguments, PreviousLocalState, LocalState>(lhs: StateMachine.State<Any?>, rhs: StateSlot<Arguments, PreviousLocalState, LocalState>) -> Bool {
     return lhs.slotUuid == rhs.uuid
 }
 
 public typealias StateMachineInput = (StateMachine) -> Void
 public class StateMachine {
-    public struct State: Equatable {
+    public struct State<LocalState>: Equatable {
         let slotUuid: String
-        let localState: Any?
+        public let localState: LocalState
 
         public static func ==(lhs: State, rhs: State) -> Bool {
             return lhs.slotUuid == rhs.slotUuid
@@ -135,22 +142,9 @@ public class StateMachine {
 
     fileprivate let mappings: [ErasedStateTransitionTrigger]
     fileprivate let inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]]
-    fileprivate var currentState: State
+    fileprivate var currentState: State<Any?>
 
-    init(initialState: StateSlot, mappings: [ErasedStateTransitionTrigger]) {
-        self.currentState = State(slotUuid: initialState.uuid, localState: nil)
-        self.mappings = mappings
-
-        var inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]] = [:]
-        for transitionTrigger in mappings {
-            var triggers = inputToTransitionTriggers[transitionTrigger.inputUuid] ?? []
-            triggers.append(transitionTrigger)
-            inputToTransitionTriggers[transitionTrigger.inputUuid] = triggers
-        }
-        self.inputToTransitionTriggers = inputToTransitionTriggers
-    }
-
-    init<InputArgs, PreviousLocalState, LocalState>(initialState: IStateSlot<InputArgs, PreviousLocalState, LocalState>, localState: LocalState, mappings: [ErasedStateTransitionTrigger]) {
+    init<Arguments, PreviousLocalState, LocalState>(initialState: StateSlot<Arguments, PreviousLocalState, LocalState>, localState: LocalState, mappings: [ErasedStateTransitionTrigger]) {
         self.currentState = State(slotUuid: initialState.uuid, localState: localState)
         self.mappings = mappings
 
@@ -163,33 +157,44 @@ public class StateMachine {
         self.inputToTransitionTriggers = inputToTransitionTriggers
     }
 
-    func send(_ input: StateMachineInput) {
-        input(self)
-        print("Done")
+    func send(_ Arguments: StateMachineInput) {
+        Arguments(self)
     }
 
-    func setNextState(state: State) {
+    func send(_ Arguments: InputSlot<Void>) {
+        Arguments.withArgs(())(self)
+    }
+
+    func setNextState(state: State<Any?>) {
         currentState = state
     }
 }
 
 class StatedTests: XCTestCase {
+//    enum B: StateSlot {
+//        case t = StateSlot()
+//    }
 
     struct States {
-        static let uninitialized = IStateSlot<Void, Void, Void> { (_, _) in
-            return
-        }
-        static let initializing = IStateSlot<Bool, Void, Bool> { input, previousState in
-            return input
-        }
+        static let uninitialized = state() //StateSlot<Void, Void, Void>.slot()
 
-        static let indexing = IStateSlot<Void, Bool, Void> { _, _ in
-            return
-        }
+        static let initializing = state(takingInput: { (Arguments: Bool) in
+            return Arguments
+        })
+
+        static let indexing = state(discardingPreviousState: Bool.self)// StateSlot<Void, Bool, Void>.slot() This only allows similarly shaped previous states...
+
+        static let loggedIn = state(usingPreviousState: { (previous: Bool) in
+            return ("test", previous)
+        })
+
+        static let done = state(taking: { (Arguments: String, previous: Bool) in
+            return "\(Arguments) \(previous)"
+        })
     }
 
     struct Inputs {
-        static let initialize = InputSlot<Bool>()
+        static let initialize = Arguments(taking: Bool.self)
         static let indexDatabase = InputSlot<Void>()
         static let logIn = InputSlot<String>()
     }
@@ -198,33 +203,33 @@ class StatedTests: XCTestCase {
 
     override func setUp() {
 
-        func initializeThing(input: InputSlot<Bool>, fromState: _IStateSlotWithLocalData<Void>, toState: IStateSlot<Bool, Void, Bool>, offline: Bool) {
+        // TODO Make state sig nicer
+        func initializeThing(Arguments: InputSlot<Bool>, fromState: StateSlotWithLocalData<Void>, toState: StateSlot<Bool, Void, Bool>, offline: Bool) {
             print("Side effects bitches")
         }
 
-        func indexStuff(input: InputSlot<Void>, fromState: _IStateSlotWithLocalData<Bool>, toState: IStateSlot<Void, Bool, Void>, _: Void) {
+        func indexStuff(Arguments: InputSlot<Void>, fromState: StateSlotWithLocalData<Bool>, toState: StateSlot<Void, Bool, Void>, _: Void) {
             print("Indexing")
         }
 
         let mappings: [ErasedStateTransitionTrigger] =  [
-            // Input             |    from         =>    to                     | side effect
+            // Input             |          from         =>    to               | side effect
             Inputs.initialize    |  States.uninitialized => States.initializing | initializeThing,
             Inputs.indexDatabase |  States.initializing  => States.indexing     | indexStuff
-
-//            (Inputs.logIn |  .indexingDatabase =>  .loggedIn) ~> initializeThing
         ]
 
         let initial = States.uninitialized
         stateMachine = StateMachine(initialState: initial, localState: (), mappings: mappings)
-
-        stateMachine.send(Inputs.initialize.withArgs(true))
     }
 
     func testExample() {
+        stateMachine.send(Inputs.initialize.withArgs(true))
         XCTAssert(stateMachine.currentState == States.initializing)
 
-        stateMachine.send(Inputs.indexDatabase.withArgs())
+        stateMachine.send(Inputs.indexDatabase)
         XCTAssert(stateMachine.currentState == States.indexing)
+
+        // todo build composite state machine - can it be formalized as nicely as article
     }
 }
 
