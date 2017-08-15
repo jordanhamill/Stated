@@ -172,20 +172,32 @@ public class StateMachine {
 
 public protocol State {
     associatedtype Arguments
-    associatedtype PreviousLocalState
+    associatedtype PreviousState
 
-    static func create(arguments: Arguments, previousLocalState: PreviousLocalState) -> Self
+    static func create(arguments: Arguments, previousState: PreviousState) -> Self
 }
 
 public protocol StateTakingInput: State {
-    typealias PreviousLocalState = Void
+    typealias PreviousState = Void
 
     static func create(arguments: Arguments) -> Self
 }
 
 extension StateTakingInput {
-    public static func create(arguments: Arguments, previousLocalState: Void) -> Self {
+    public static func create(arguments: Arguments, previousState: Void) -> Self {
         return self.create(arguments: arguments)
+    }
+}
+
+public protocol StateUsingPreviousState: State {
+    typealias Arguments = Void
+
+    static func create(previousState: PreviousState) -> Self
+}
+
+extension StateUsingPreviousState {
+    public static func create(arguments: Void, previousState: PreviousState) -> Self {
+        return self.create(previousState: previousState)
     }
 }
 
