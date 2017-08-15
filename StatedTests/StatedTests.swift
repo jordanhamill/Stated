@@ -170,6 +170,25 @@ public class StateMachine {
     }
 }
 
+public protocol State {
+    associatedtype Arguments
+    associatedtype PreviousLocalState
+
+    static func create(arguments: Arguments, previousLocalState: PreviousLocalState) -> Self
+}
+
+public protocol StateTakingInput: State {
+    typealias PreviousLocalState = Void
+
+    static func create(arguments: Arguments) -> Self
+}
+
+extension StateTakingInput {
+    public static func create(arguments: Arguments, previousLocalState: Void) -> Self {
+        return self.create(arguments: arguments)
+    }
+}
+
 class StatedTests: XCTestCase {
 //    enum B: StateSlot {
 //        case t = StateSlot()
@@ -188,6 +207,28 @@ class StatedTests: XCTestCase {
     struct Account {
         let email: String
         var name: String
+    }
+
+    // State
+
+    struct AnyState {
+
+    }
+
+    struct InitializedState {
+
+    }
+
+    struct UpgradingState {
+
+    }
+
+    struct IndexingState {
+
+    }
+
+    struct LoggedOutState {
+
     }
 
     class LoggedInState {
@@ -237,8 +278,22 @@ class StatedTests: XCTestCase {
 
     class AppLauncher {
         struct States {
+//            static let uninitialized = state(takingInput: { (launchedFrom: LaunchedFrom) -> DeepLink? in
+//                switch launchedFrom {
+//                case .fresh:
+//                    return nil
+//                case .url:
+//                    return DeepLink.viewPost("Blah")
+//                }
+//            })
+//
+//            static let initialized = state(usingPreviousState: { (deepLink: DeepLink?) -> DeepLink? in
+//                return deepLink
+//            })// This now forward on as a composed up state of `FromUrl`/Deep navigation link destination for app
+
             static let uninitialized = state()
-            static let initialized = state() // This now forward on as a composed up state of `FromUrl`/Deep navigation link destination for app
+            static let initialized = state()
+
             static let upgrading = state()
             static let indexing = state() // vc state - inject in completion
             static let loggedOut = state()
@@ -246,7 +301,8 @@ class StatedTests: XCTestCase {
         }
 
         struct Inputs {
-            static let initialize = input() // Input FromUrl
+//            static let initialize = input(taking: LaunchedFrom.self) // Input FromUrl
+            static let initialize = input()
             static let upgrade = input()
             static let indexDatabase = input()
             static let logIn = input() // Take in Account
@@ -260,51 +316,6 @@ class StatedTests: XCTestCase {
         // MARK: Lifecycle
 
         init() {
-
-            func canLogIn() -> Bool {
-                return true
-            }
-
-//            func initialize(send: @escaping (Input) -> Void) {
-//                if true {
-//                    send(.upgrade)
-//                } else {
-//                    send(.indexDatabase)
-//                }
-//            }
-//
-//            func upgrade(send: @escaping (Input) -> Void) {
-//                rootViewController.showUpgradeController(upgradeService: upgradeService) {
-//                    // Upgrade successful callback
-//                    send(.indexDatabase)
-//                }
-//            }
-//
-//            func indexDatabase(send: @escaping (Input) -> Void) {
-//                db.createSecondaryIndices(on: SharedNote.self)
-//
-//                if canLogIn() {
-//                    send(.logIn)
-//                } else {
-//                    send(.logOut)
-//                }
-//            }
-//
-//            func logIn(send: @escaping (Input) -> Void) {
-//                rootViewController.showTourListViewController {
-//                    // Log out callback
-//                    send(.logOut)
-//                }
-//            }
-//
-//            func logOut(send:  @escaping (Input) -> Void) {
-//                apiService.clearAuthentication()
-//                rootViewController.showLoginViewController {
-//                    // Login successful callback
-//                    send(.logIn)
-//                }
-//            }
-
             let mappings: [ErasedStateTransitionTrigger] = [
                 /* Input              |           from             to                 |   effect    */
                 Inputs.initialize     | States.uninitialized => States.initialized, //| initialize,
