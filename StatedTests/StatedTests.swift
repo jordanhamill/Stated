@@ -170,6 +170,9 @@ public class StateMachine {
     }
 }
 
+public typealias AnyPreviousState = Void
+public typealias NoArguments = Void
+
 public protocol State {
     associatedtype Arguments
     associatedtype PreviousState
@@ -178,27 +181,57 @@ public protocol State {
 }
 
 public protocol StateTakingInput: State {
-    typealias PreviousState = Void
+    typealias PreviousState = AnyPreviousState
 
     static func create(arguments: Arguments) -> Self
 }
 
 extension StateTakingInput {
-    public static func create(arguments: Arguments, previousState: Void) -> Self {
+    public static func create(arguments: Arguments, previousState: AnyPreviousState) -> Self {
         return self.create(arguments: arguments)
     }
 }
 
 public protocol StateUsingPreviousState: State {
-    typealias Arguments = Void
+    typealias Arguments = NoArguments
 
     static func create(previousState: PreviousState) -> Self
 }
 
 extension StateUsingPreviousState {
-    public static func create(arguments: Void, previousState: PreviousState) -> Self {
+    public static func create(arguments: NoArguments, previousState: PreviousState) -> Self {
         return self.create(previousState: previousState)
     }
+}
+
+public struct StateAtom: State {
+    public typealias Arguments = Void
+    public typealias PreviousState = Void
+    
+    public static func create(arguments: Void, previousState: Void) -> StateAtom {
+        return StateAtom()
+    }
+
+    private init() { }
+}
+
+enum LaunchedFrom {
+    case fresh
+    case url(URL)
+}
+
+enum DeepLink {
+    case viewPost(String)
+    case friendRequest(String)
+}
+
+struct Account {
+    let email: String
+    var name: String
+}
+
+protocol InitializingState {
+    var deepLink: DeepLink? { get }
 }
 
 class StatedTests: XCTestCase {
@@ -206,37 +239,50 @@ class StatedTests: XCTestCase {
 //        case t = StateSlot()
 //    }
 
-    enum LaunchedFrom {
-        case fresh
-        case url(URL)
-    }
-
-    enum DeepLink {
-        case viewPost(String)
-        case friendRequest(String)
-    }
-
-    struct Account {
-        let email: String
-        var name: String
-    }
-
     // State
 
-    struct AnyState {
+    struct InitializedState: StateTakingInput, InitializingState {
+        typealias PreviousState = AnyPreviousState // boooo
+        typealias Arguments = LaunchedFrom
 
+        let deepLink: DeepLink?
+
+        static func create(arguments: LaunchedFrom) -> StatedTests.InitializedState {
+            let deepLink: DeepLink?
+            switch arguments {
+            case .fresh:
+                deepLink = nil
+            case .url:
+                deepLink = DeepLink.viewPost("Blah")
+            }
+            return InitializedState(deepLink: deepLink)
+        }
+
+        private init(deepLink: DeepLink?) {
+            self.deepLink = deepLink
+        }
     }
 
-    struct InitializedState {
+    struct UpgradingState: StateUsingPreviousState, InitializingState {
+        typealias PreviousState = InitializingState
+        typealias Arguments = NoArguments
 
+        let deepLink: DeepLink?
+
+        static func create(previousState: InitializingState) -> UpgradingState {
+            return UpgradingState(deepLink: previousState.deepLink)
+        }
     }
 
-    struct UpgradingState {
+    struct IndexingState: StateUsingPreviousState, InitializingState {
+        typealias PreviousState = InitializingState
+        typealias Arguments = NoArguments
 
-    }
+        let deepLink: DeepLink?
 
-    struct IndexingState {
-
+        static func create(previousState: InitializingState) -> IndexingState {
+            return IndexingState(deepLink: previousState.deepLink)
+        }
     }
 
     struct LoggedOutState {
