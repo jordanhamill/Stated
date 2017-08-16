@@ -1,30 +1,38 @@
 import XCTest
 //import Stated
 
-public class StateTransition<Arguments, LocalStateFrom, LocalStateTo> {
-    let from: StateSlotWithLocalData<LocalStateFrom>
-    let to: StateSlot<Arguments, LocalStateFrom, LocalStateTo>
+// todo relax StateFrom: State to just blank StateFrom
+public class StateTransition<Arguments, StateFrom: State, StateTo: State> where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
+    let from: StateFrom.Type
+    let to: StateTo.Type
 
-    init(from: StateSlotWithLocalData<LocalStateFrom>, to: StateSlot<Arguments, LocalStateFrom, LocalStateTo>) {
+    init(from: StateFrom.Type, to: StateTo.Type) {
         self.from = from
         self.to = to
     }
 
-    func trigger(withInput Arguments: Arguments, stateMachine: StateMachine) {
-        let nextStateLocalState = to.mapInput(Arguments, stateMachine.currentState.localState as! LocalStateFrom)
-        let nextState = StateMachine.State<Any?>(
-            slotUuid: to.uuid,
-            localState: nextStateLocalState
-        )
-        stateMachine.setNextState(state: nextState)
+    func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
+        let previousState = stateMachine.currentState.localState as! StateFrom
+        let nextState = to.create(arguments: arguments, previousState: previousState)
+//        let nextStateLocalState = to.mapInput(Arguments, stateMachine.currentState.localState as! LocalStateFrom)
+//        let nextState = StateMachine.State<Any?>(
+//            slotUuid: to.uuid,
+//            localState: nextStateLocalState
+//        )
+//        stateMachine.setNextState(state: nextState)
     }
 }
 
 infix operator =>: MultiplicationPrecedence
-public func =><Arguments, LocalStateFrom, LocalStateTo>(from: StateSlotWithLocalData<LocalStateFrom>, to: StateSlot<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransition<Arguments, LocalStateFrom, LocalStateTo> {
+public func =><Arguments, StateFrom: State, StateTo: State>(from: StateFrom.Type, to: StateTo.Type) -> StateTransition<Arguments, StateFrom, StateTo> {
     return from.to(to)
 }
 
+extension State {
+    static func to<Arguments, StateTo: State> (_ to: StateTo.Type) -> StateTransition<Arguments, Self, StateTo> where StateTo.Arguments == Arguments, StateTo.PreviousState == Self {
+        return StateTransition(from: Self.self, to: StateTo.self)
+    }
+}
 
 
 public class ErasedStateTransitionTrigger {
@@ -41,15 +49,15 @@ public class ErasedStateTransitionTrigger {
     }
 }
 
-public class StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>: ErasedStateTransitionTrigger {
+public class StateTransitionTrigger<Arguments, StateFrom: State, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
     let inputSlot: InputSlot<Arguments>
-    let transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>
+    let transition: StateTransition<Arguments, StateFrom, StateTo>
 
-    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) {
+    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, StateFrom, StateTo>) {
         self.inputSlot = inputSlot
         self.transition = transition
         super.init(inputUuid: inputSlot.uuid, trigger: { (args: Any, stateMachine: StateMachine) in
-            guard stateMachine.currentState.slotUuid == transition.from.uuid else { return false }
+//            guard stateMachine.currentState.slotUuid == transition.from.uuid else { return false }
             guard let typedArgs = args as? Arguments else { return false }
 
             transition.trigger(withInput: typedArgs, stateMachine: stateMachine)
@@ -57,23 +65,23 @@ public class StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>: Er
         })
     }
 }
-
-public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo>: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
-    public var sideEffect: (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
-
-    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
-        self.sideEffect = sideEffect
-        super.init(inputSlot: inputSlot, transition: transition)
-    }
-
-    override func tryTransition(args: Any, stateMachine: StateMachine) -> Bool {
-        let transitioned = super.tryTransition(args: args, stateMachine: stateMachine)
-        if transitioned {
-            sideEffect(inputSlot, transition.from, transition.to, args as! Arguments)
-        }
-        return transitioned
-    }
-}
+//
+//public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo>: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
+//    public var sideEffect: (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
+//
+//    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
+//        self.sideEffect = sideEffect
+//        super.init(inputSlot: inputSlot, transition: transition)
+//    }
+//
+//    override func tryTransition(args: Any, stateMachine: StateMachine) -> Bool {
+//        let transitioned = super.tryTransition(args: args, stateMachine: stateMachine)
+//        if transitioned {
+//            sideEffect(inputSlot, transition.from, transition.to, args as! Arguments)
+//        }
+//        return transitioned
+//    }
+//}
 
 
 public func |<Arguments, LocalStateFrom, LocalStateTo>(Arguments: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
@@ -81,11 +89,11 @@ public func |<Arguments, LocalStateFrom, LocalStateTo>(Arguments: InputSlot<Argu
 }
 
 
-public func |<Arguments, LocalStateFrom, LocalStateTo>(
-    transitionTrigger: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>,
-    effect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
-        return StateTransitionTriggerWithSideEffect(inputSlot: transitionTrigger.inputSlot, transition: transitionTrigger.transition, sideEffect: effect)
-}
+//public func |<Arguments, LocalStateFrom, LocalStateTo>(
+//    transitionTrigger: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>,
+//    effect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
+//        return StateTransitionTriggerWithSideEffect(inputSlot: transitionTrigger.inputSlot, transition: transitionTrigger.transition, sideEffect: effect)
+//}
 
 public struct InputSlot<Arguments>: Equatable, Hashable {
     fileprivate let uuid: String
@@ -125,27 +133,27 @@ public func input<Arguments>(taking: Arguments.Type) -> InputSlot<Arguments> {
     return InputSlot()
 }
 
-public func ==<Arguments, PreviousLocalState, LocalState>(lhs: StateMachine.State<Any?>, rhs: StateSlot<Arguments, PreviousLocalState, LocalState>) -> Bool {
-    return lhs.slotUuid == rhs.uuid
-}
+//public func ==<Arguments, PreviousLocalState, LocalState>(lhs: StateMachine.State<Any?>, rhs: StateSlot<Arguments, PreviousLocalState, LocalState>) -> Bool {
+//    return lhs.slotUuid == rhs.uuid
+//}
 
 public typealias StateMachineInput = (StateMachine) -> Void
 public class StateMachine {
-    public struct State<LocalState>: Equatable {
+    public struct CurrentState: Equatable {
         let slotUuid: String
-        public let localState: LocalState
+        public let localState: Any
 
-        public static func ==(lhs: State, rhs: State) -> Bool {
+        public static func ==(lhs: CurrentState, rhs: CurrentState) -> Bool {
             return lhs.slotUuid == rhs.slotUuid
         }
     }
 
     fileprivate let mappings: [ErasedStateTransitionTrigger]
     fileprivate let inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]]
-    fileprivate var currentState: State<Any?>
+    fileprivate var currentState: CurrentState
 
-    public init<Arguments, PreviousLocalState, LocalState>(initialState: StateSlot<Arguments, PreviousLocalState, LocalState>, localState: LocalState, mappings: [ErasedStateTransitionTrigger]) {
-        self.currentState = State(slotUuid: initialState.uuid, localState: localState)
+    public init<InitialState: State>(initialState: InitialState, mappings: [ErasedStateTransitionTrigger]) {
+        self.currentState = CurrentState(slotUuid: InitialState.uniqueId, localState: initialState)
         self.mappings = mappings
 
         var inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]] = [:]
@@ -165,7 +173,7 @@ public class StateMachine {
         Arguments.withArgs(())(self)
     }
 
-    func setNextState(state: State<Any?>) {
+    func setNextState(state: CurrentState) {
         currentState = state
     }
 }
@@ -173,11 +181,25 @@ public class StateMachine {
 public typealias AnyPreviousState = Void
 public typealias NoArguments = Void
 
-public protocol State {
+public protocol State: Equatable {
     associatedtype Arguments
     associatedtype PreviousState
 
     static func create(arguments: Arguments, previousState: PreviousState) -> Self
+}
+
+extension State {
+    public static var uniqueId: String {
+        return String(describing: self)
+    }
+
+    public static func ==(lhs: Self, rhs: Self) -> Bool {
+        return type(of: lhs).uniqueId == type(of: rhs).uniqueId
+    }
+
+    public static var slot: Self.Type {
+        return self
+    }
 }
 
 public protocol StateTakingInput: State {
@@ -293,9 +315,9 @@ class StatedTests: XCTestCase {
         let account: Account
 
         struct States {
-            static let timeline = state()
-            static let friends = state()
-            static let profile = state()
+//            static let timeline = state()
+//            static let friends = state()
+//            static let profile = state()
         }
 
         struct Inputs {
@@ -310,17 +332,17 @@ class StatedTests: XCTestCase {
             self.account = account
 
             let mappings: [ErasedStateTransitionTrigger] = [
-                Inputs.viewTimeline | States.friends  => States.timeline,
-                Inputs.viewProfile  | States.friends  => States.profile,
-
-                Inputs.viewProfile  | States.timeline => States.profile,
-                Inputs.viewFriends  | States.timeline => States.friends,
-
-                Inputs.viewFriends  | States.profile  => States.friends,
-                Inputs.viewTimeline | States.profile  => States.timeline,
+//                Inputs.viewTimeline | States.friends  => States.timeline,
+//                Inputs.viewProfile  | States.friends  => States.profile,
+//
+//                Inputs.viewProfile  | States.timeline => States.profile,
+//                Inputs.viewFriends  | States.timeline => States.friends,
+//
+//                Inputs.viewFriends  | States.profile  => States.friends,
+//                Inputs.viewTimeline | States.profile  => States.timeline,
             ]
 
-            self.machine = StateMachine(initialState: States.timeline, localState: (), mappings: mappings)
+//            self.machine = StateMachine(initialState: States.timeline, localState: (), mappings: mappings)
 
             if let deepLink = deepLink {
                 switch deepLink {
@@ -349,13 +371,13 @@ class StatedTests: XCTestCase {
 //                return deepLink
 //            })// This now forward on as a composed up state of `FromUrl`/Deep navigation link destination for app
 
-            static let uninitialized = state()
-            static let initialized = state()
-
-            static let upgrading = state()
-            static let indexing = state() // vc state - inject in completion
-            static let loggedOut = state()
-            static let loggedIn = state() // Pass in Account and store it in state as well as deep link destination - imagine account being manipulated by VCs - create another state machine for an internal tab bar?
+//            static let uninitialized = state()
+//            static let initialized = state()
+//
+//            static let upgrading = state()
+//            static let indexing = state() // vc state - inject in completion
+//            static let loggedOut = state()
+//            static let loggedIn = state() // Pass in Account and store it in state as well as deep link destination - imagine account being manipulated by VCs - create another state machine for an internal tab bar?
         }
 
         struct Inputs {
@@ -374,23 +396,33 @@ class StatedTests: XCTestCase {
         // MARK: Lifecycle
 
         init() {
+
+            struct NewStates {
+                static let uninitialized = StateAtom.slot
+                static let initialized = InitializedState.slot
+            }
+
+            let tsn = NewStates.uninitialized.to(NewStates.initialized)
+
+//            tsn.trigger(withInput: .fresh, stateMachine: machine)
+
             let mappings: [ErasedStateTransitionTrigger] = [
                 /* Input              |           from             to                 |   effect    */
-                Inputs.initialize     | States.uninitialized => States.initialized, //| initialize,
-
-                Inputs.upgrade        | States.initialized   => States.upgrading,   //| upgrade,
-
-                Inputs.indexDatabase  | States.initialized   => States.indexing,    //| indexDatabase,
-                Inputs.indexDatabase  | States.upgrading     => States.indexing,    //| indexDatabase,
-
-                Inputs.logIn          | States.indexing      => States.loggedIn,    //| logIn,
-                Inputs.logIn          | States.loggedOut     => States.loggedIn,    //| logIn,
-                
-                Inputs.logOut         | States.indexing      => States.loggedOut,   //| logOut,
-                Inputs.logOut         | States.loggedIn      => States.loggedOut    //| logOut
+//                Inputs.initialize     | States.uninitialized => States.initialized, //| initialize,
+//
+//                Inputs.upgrade        | States.initialized   => States.upgrading,   //| upgrade,
+//
+//                Inputs.indexDatabase  | States.initialized   => States.indexing,    //| indexDatabase,
+//                Inputs.indexDatabase  | States.upgrading     => States.indexing,    //| indexDatabase,
+//
+//                Inputs.logIn          | States.indexing      => States.loggedIn,    //| logIn,
+//                Inputs.logIn          | States.loggedOut     => States.loggedIn,    //| logIn,
+//                
+//                Inputs.logOut         | States.indexing      => States.loggedOut,   //| logOut,
+//                Inputs.logOut         | States.loggedIn      => States.loggedOut    //| logOut
             ]
             
-            machine = StateMachine(initialState: States.uninitialized, localState: (), mappings: mappings)
+//            machine = StateMachine(initialState: States.uninitialized, localState: (), mappings: mappings)
         }
         
         // MARK: Internal methods
