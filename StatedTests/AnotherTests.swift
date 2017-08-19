@@ -31,7 +31,7 @@ public class StateSlotWithLocalData<LocalState: AnyState>: Equatable, Hashable {
 //        return StateTransition(from: self, to: to)
 //    }
 
-    public func _to<Arguments, StateTo: State>(_ to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, LocalState, StateTo>
+    public func to<Arguments, StateTo: State>(_ to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, LocalState, StateTo>
         where StateTo.Arguments == Arguments, StateTo.PreviousState: AnyState {
         return StateTransition(from: self, to: to)
     }

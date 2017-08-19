@@ -1,11 +1,11 @@
 import XCTest
 //import Stated
 
-//infix operator =>: MultiplicationPrecedence
-//public func =><Arguments, StateFrom: State, StateTo: State>(from: StateFrom.Type, to: StateTo.Type) -> StateTransition<Arguments, StateFrom, StateTo> {
-//    return from.to(to)
-//}
-//
+infix operator =>: MultiplicationPrecedence
+public func => <Arguments, StateFrom, StateTo: State>(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, StateFrom, StateTo>
+    where StateTo.Arguments == Arguments, StateTo.PreviousState: AnyState {
+        return from.to(to)
+}
 
 public class ErasedStateTransitionTrigger {
     let inputUuid: String
@@ -232,13 +232,13 @@ class StatedTests: XCTestCase {
 
     public struct UninitializedState: State {
         public typealias Arguments = Void
-        public typealias PreviousState = AnyPreviousState
+        public typealias PreviousState = Void
 
-        public static func create(arguments: Void, previousState: AnyPreviousState) -> UninitializedState {
+        public static func create(arguments: Void, previousState: Void) -> UninitializedState {
             return UninitializedState()
         }
 
-        private init() { }
+        init() { }//TODO
     }
 
     struct InitializedState: State {
@@ -298,7 +298,8 @@ class StatedTests: XCTestCase {
         // MARK: Lifecycle
 
         init() {
-            let tsn = States.uninitialized._to(States.initialized)
+            machine = StateMachine(initialState: UninitializedState(), mappings: [])
+            let tsn = States.uninitialized => States.initialized
             tsn.trigger(withInput: .fresh, stateMachine: machine)
 
 
