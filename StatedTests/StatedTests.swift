@@ -1,39 +1,11 @@
 import XCTest
 //import Stated
 
-// todo relax StateFrom: State to just blank StateFrom
-public class StateTransition<Arguments, StateFrom, StateTo: State> where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
-    let from: StateFrom.Type
-    let to: StateTo.Type
-
-    init(from: StateFrom.Type, to: StateTo.Type) {
-        self.from = from
-        self.to = to
-    }
-
-    func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
-        let previousState = stateMachine.currentState.localState as! StateFrom
-        let nextState = to.create(arguments: arguments, previousState: previousState)
-//        let nextStateLocalState = to.mapInput(Arguments, stateMachine.currentState.localState as! LocalStateFrom)
-//        let nextState = StateMachine.State<Any?>(
-//            slotUuid: to.uuid,
-//            localState: nextStateLocalState
-//        )
-//        stateMachine.setNextState(state: nextState)
-    }
-}
-
-infix operator =>: MultiplicationPrecedence
-public func =><Arguments, StateFrom: State, StateTo: State>(from: StateFrom.Type, to: StateTo.Type) -> StateTransition<Arguments, StateFrom, StateTo> {
-    return from.to(to)
-}
-
-extension State {
-    static func to<Arguments, StateTo: State> (_ to: StateTo.Type) -> StateTransition<Arguments, Self, StateTo> where StateTo.Arguments == Arguments, StateTo.PreviousState == Self {
-        return StateTransition(from: Self.self, to: StateTo.self)
-    }
-}
-
+//infix operator =>: MultiplicationPrecedence
+//public func =><Arguments, StateFrom: State, StateTo: State>(from: StateFrom.Type, to: StateTo.Type) -> StateTransition<Arguments, StateFrom, StateTo> {
+//    return from.to(to)
+//}
+//
 
 public class ErasedStateTransitionTrigger {
     let inputUuid: String
@@ -49,22 +21,22 @@ public class ErasedStateTransitionTrigger {
     }
 }
 
-public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
-    let inputSlot: InputSlot<Arguments>
-    let transition: StateTransition<Arguments, StateFrom, StateTo>
-
-    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, StateFrom, StateTo>) {
-        self.inputSlot = inputSlot
-        self.transition = transition
-        super.init(inputUuid: inputSlot.uuid, trigger: { (args: Any, stateMachine: StateMachine) in
-//            guard stateMachine.currentState.slotUuid == transition.from.uuid else { return false }
-            guard let typedArgs = args as? Arguments else { return false }
-
-            transition.trigger(withInput: typedArgs, stateMachine: stateMachine)
-            return true
-        })
-    }
-}
+//public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
+//    let inputSlot: InputSlot<Arguments>
+//    let transition: StateTransition<Arguments, StateFrom, StateTo>
+//
+//    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, StateFrom, StateTo>) {
+//        self.inputSlot = inputSlot
+//        self.transition = transition
+//        super.init(inputUuid: inputSlot.uuid, trigger: { (args: Any, stateMachine: StateMachine) in
+////            guard stateMachine.currentState.slotUuid == transition.from.uuid else { return false }
+//            guard let typedArgs = args as? Arguments else { return false }
+//
+//            transition.trigger(withInput: typedArgs, stateMachine: stateMachine)
+//            return true
+//        })
+//    }
+//}
 //
 //public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo>: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
 //    public var sideEffect: (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
@@ -84,9 +56,9 @@ public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: Erase
 //}
 
 
-public func |<Arguments, LocalStateFrom, LocalStateTo>(Arguments: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
-    return StateTransitionTrigger(inputSlot: Arguments, transition: transition)
-}
+//public func |<Arguments, LocalStateFrom, LocalStateTo>(Arguments: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>) -> StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
+//    return StateTransitionTrigger(inputSlot: Arguments, transition: transition)
+//}
 
 
 //public func |<Arguments, LocalStateFrom, LocalStateTo>(
@@ -178,10 +150,9 @@ public class StateMachine {
     }
 }
 
-public typealias AnyPreviousState = Void
 public typealias NoArguments = Void
 
-public protocol State: Equatable {
+public protocol State: Equatable, AnyState {
     associatedtype Arguments
     associatedtype PreviousState
 
@@ -197,45 +168,55 @@ extension State {
         return type(of: lhs).uniqueId == type(of: rhs).uniqueId
     }
 
-    public static var slot: Self.Type {
-        return self
+    public static var slot: StateSlot<Arguments, Self> {
+        return StateSlot()
     }
 }
 
-public protocol StateTakingInput: State {
-    typealias PreviousState = AnyPreviousState
+public class StateTransition<Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments {//, StateTo.PreviousState == StateFrom {
+    let from: StateSlotWithLocalData<StateFrom>
+    let to: StateSlot<Arguments, StateTo>
 
-    static func create(arguments: Arguments) -> Self
-}
+    init(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>) {
+        self.from = from
+        self.to = to
+    }
 
-extension StateTakingInput {
-    public static func create(arguments: Arguments, previousState: AnyPreviousState) -> Self {
-        return self.create(arguments: arguments)
+    func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
+        let previousState = stateMachine.currentState.localState as! StateTo.PreviousState
+        let nextState = StateTo.create(arguments: arguments, previousState: previousState)
+        let state = StateMachine.CurrentState(
+            slotUuid: to.uuid,
+            localState: nextState
+        )
+        stateMachine.setNextState(state: state)
     }
 }
 
-public protocol StateUsingPreviousState: State {
-    typealias Arguments = NoArguments
 
-    static func create(previousState: PreviousState) -> Self
-}
-
-extension StateUsingPreviousState {
-    public static func create(arguments: NoArguments, previousState: PreviousState) -> Self {
-        return self.create(previousState: previousState)
-    }
-}
-
-public struct StateAtom: State {
-    public typealias Arguments = Void
-    public typealias PreviousState = Void
-    
-    public static func create(arguments: Void, previousState: Void) -> StateAtom {
-        return StateAtom()
-    }
-
-    private init() { }
-}
+//public protocol StateTakingInput: State {
+//    typealias PreviousState = AnyState
+//
+//    static func create(arguments: Arguments) -> Self
+//}
+//
+//extension StateTakingInput {
+//    public static func create(arguments: Arguments, previousState: AnyState) -> Self {
+//        return self.create(arguments: arguments)
+//    }
+//}
+//
+//public protocol StateUsingPreviousState: State {
+//    typealias Arguments = NoArguments
+//
+//    static func create(previousState: PreviousState) -> Self
+//}
+//
+//extension StateUsingPreviousState {
+//    public static func create(arguments: NoArguments, previousState: PreviousState) -> Self {
+//        return self.create(previousState: previousState)
+//    }
+//}
 
 enum LaunchedFrom {
     case fresh
@@ -247,29 +228,26 @@ enum DeepLink {
     case friendRequest(String)
 }
 
-struct Account {
-    let email: String
-    var name: String
-}
-
-protocol InitializingState {
-    var deepLink: DeepLink? { get }
-}
-
 class StatedTests: XCTestCase {
-//    enum B: StateSlot {
-//        case t = StateSlot()
-//    }
 
-    // State
+    public struct UninitializedState: State {
+        public typealias Arguments = Void
+        public typealias PreviousState = AnyPreviousState
 
-    struct InitializedState: StateTakingInput, InitializingState {
-        typealias PreviousState = AnyPreviousState // boooo
+        public static func create(arguments: Void, previousState: AnyPreviousState) -> UninitializedState {
+            return UninitializedState()
+        }
+
+        private init() { }
+    }
+
+    struct InitializedState: State {
+        typealias PreviousState = UninitializedState // boooo
         typealias Arguments = LaunchedFrom
 
         let deepLink: DeepLink?
 
-        static func create(arguments: LaunchedFrom) -> StatedTests.InitializedState {
+        static func create(arguments: LaunchedFrom, previousState: UninitializedState) -> StatedTests.InitializedState {
             let deepLink: DeepLink?
             switch arguments {
             case .fresh:
@@ -285,79 +263,11 @@ class StatedTests: XCTestCase {
         }
     }
 
-    struct UpgradingState: StateUsingPreviousState, InitializingState {
-        typealias PreviousState = InitializingState
-        typealias Arguments = NoArguments
-
-        let deepLink: DeepLink?
-
-        static func create(previousState: InitializingState) -> UpgradingState {
-            return UpgradingState(deepLink: previousState.deepLink)
-        }
-    }
-
-    struct IndexingState: StateUsingPreviousState, InitializingState {
-        typealias PreviousState = InitializingState
-        typealias Arguments = NoArguments
-
-        let deepLink: DeepLink?
-
-        static func create(previousState: InitializingState) -> IndexingState {
-            return IndexingState(deepLink: previousState.deepLink)
-        }
-    }
-
-    struct LoggedOutState {
-
-    }
-
-    class LoggedInState {
-        let account: Account
-
-        struct States {
-//            static let timeline = state()
-//            static let friends = state()
-//            static let profile = state()
-        }
-
-        struct Inputs {
-            static let viewTimeline = input()
-            static let viewFriends = input()
-            static let viewProfile = input()
-        }
-
-        private var machine: StateMachine!
-
-        init(account: Account, deepLink: DeepLink?) {
-            self.account = account
-
-            let mappings: [ErasedStateTransitionTrigger] = [
-//                Inputs.viewTimeline | States.friends  => States.timeline,
-//                Inputs.viewProfile  | States.friends  => States.profile,
-//
-//                Inputs.viewProfile  | States.timeline => States.profile,
-//                Inputs.viewFriends  | States.timeline => States.friends,
-//
-//                Inputs.viewFriends  | States.profile  => States.friends,
-//                Inputs.viewTimeline | States.profile  => States.timeline,
-            ]
-
-//            self.machine = StateMachine(initialState: States.timeline, localState: (), mappings: mappings)
-
-            if let deepLink = deepLink {
-                switch deepLink {
-                case .viewPost(let postId):
-                    machine.send(Inputs.viewTimeline.withArgs(()))
-                case .friendRequest(let requestId):
-                    machine.send(Inputs.viewFriends.withArgs(()))
-                }
-            }
-        }
-
-    }
-
     class AppLauncher {
         struct States {
+            static let uninitialized = UninitializedState.slot
+            static let initialized = InitializedState.slot
+
 //            static let uninitialized = state(takingInput: { (launchedFrom: LaunchedFrom) -> DeepLink? in
 //                switch launchedFrom {
 //                case .fresh:
@@ -370,14 +280,6 @@ class StatedTests: XCTestCase {
 //            static let initialized = state(usingPreviousState: { (deepLink: DeepLink?) -> DeepLink? in
 //                return deepLink
 //            })// This now forward on as a composed up state of `FromUrl`/Deep navigation link destination for app
-
-//            static let uninitialized = state()
-//            static let initialized = state()
-//
-//            static let upgrading = state()
-//            static let indexing = state() // vc state - inject in completion
-//            static let loggedOut = state()
-//            static let loggedIn = state() // Pass in Account and store it in state as well as deep link destination - imagine account being manipulated by VCs - create another state machine for an internal tab bar?
         }
 
         struct Inputs {
@@ -396,34 +298,12 @@ class StatedTests: XCTestCase {
         // MARK: Lifecycle
 
         init() {
+            let tsn = States.uninitialized._to(States.initialized)
+            tsn.trigger(withInput: .fresh, stateMachine: machine)
 
-            struct NewStates {
-                static let uninitialized = StateAtom.slot
-                static let initialized = InitializedState.slot
-            }
 
-            // This is passing in the wrong thing as state from - not uninitialized iself but uninitialized.Args which is Void...
-            let tsn = NewStates.uninitialized.to(NewStates.initialized)
-
-//            tsn.trigger(withInput: .fresh, stateMachine: machine)
-
-            let mappings: [ErasedStateTransitionTrigger] = [
-                /* Input              |           from             to                 |   effect    */
-//                Inputs.initialize     | States.uninitialized => States.initialized, //| initialize,
-//
-//                Inputs.upgrade        | States.initialized   => States.upgrading,   //| upgrade,
-//
-//                Inputs.indexDatabase  | States.initialized   => States.indexing,    //| indexDatabase,
-//                Inputs.indexDatabase  | States.upgrading     => States.indexing,    //| indexDatabase,
-//
-//                Inputs.logIn          | States.indexing      => States.loggedIn,    //| logIn,
-//                Inputs.logIn          | States.loggedOut     => States.loggedIn,    //| logIn,
-//                
-//                Inputs.logOut         | States.indexing      => States.loggedOut,   //| logOut,
-//                Inputs.logOut         | States.loggedIn      => States.loggedOut    //| logOut
-            ]
-            
-//            machine = StateMachine(initialState: States.uninitialized, localState: (), mappings: mappings)
+//            <Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments
+//            init(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>)
         }
         
         // MARK: Internal methods
@@ -436,27 +316,6 @@ class StatedTests: XCTestCase {
     var appLauncher: AppLauncher!
     override func setUp() {
         appLauncher = AppLauncher()
-        // TODO Make state sig nicer
-//        func initializeThing(Arguments: InputSlot<Bool>, fromState: StateSlotWithLocalData<Void>, toState: StateSlot<Bool, Void, Bool>, offline: Bool) {
-//            print("Side effects bitches")
-//        }
-//
-//        func indexStuff(Arguments: InputSlot<Void>, fromState: StateSlotWithLocalData<Bool>, toState: StateSlot<Void, Bool, Void>, _: Void) {
-//            print("Indexing")
-//        }
-//
-//
-//
-//        let mappings: [ErasedStateTransitionTrigger] =  [
-//            // Input             |          from         =>    to               | side effect
-//            Inputs.initialize    |  States.uninitialized => States.initializing | initializeThing,
-//            Inputs.indexDatabase |  States.initializing  => States.indexing     | indexStuff,
-//
-////            Inputs.logIn         |  States.initializing  => States.loggedIn//     | indexStuff
-//        ]
-//
-//        let initial = States.uninitialized
-//        stateMachine = StateMachine(initialState: initial, localState: (), mappings: mappings)
     }
 
     func testExample() {
