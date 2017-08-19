@@ -2,8 +2,8 @@ import XCTest
 //import Stated
 
 //infix operator =>: MultiplicationPrecedence
-//public func => <Arguments, StateFrom, StateTo: State>(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, StateFrom, StateTo>
-//    where StateTo.Arguments == Arguments, StateTo.PreviousState: AnyState {
+//public func => <Arguments, StateFrom, StateTo: State>(from: ErasedStateSlot<StateFrom>, to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, StateFrom, StateTo>
+//    where StateTo.Arguments == Arguments, StateTo.MappedState: AnyState {
 //        return from.to(to)
 //}
 
@@ -21,7 +21,7 @@ public class ErasedStateTransitionTrigger {
     }
 }
 
-//public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
+//public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.MappedState == StateFrom {
 //    let inputSlot: InputSlot<Arguments>
 //    let transition: StateTransition<Arguments, StateFrom, StateTo>
 //
@@ -39,9 +39,9 @@ public class ErasedStateTransitionTrigger {
 //}
 //
 //public class StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo>: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo> {
-//    public var sideEffect: (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
+//    public var sideEffect: (InputSlot<Arguments>, ErasedStateSlot<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void = { _ in }
 //
-//    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
+//    public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, LocalStateFrom, LocalStateTo>, sideEffect: @escaping (InputSlot<Arguments>, ErasedStateSlot<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) {
 //        self.sideEffect = sideEffect
 //        super.init(inputSlot: inputSlot, transition: transition)
 //    }
@@ -63,7 +63,7 @@ public class ErasedStateTransitionTrigger {
 
 //public func |<Arguments, LocalStateFrom, LocalStateTo>(
 //    transitionTrigger: StateTransitionTrigger<Arguments, LocalStateFrom, LocalStateTo>,
-//    effect: @escaping (InputSlot<Arguments>, StateSlotWithLocalData<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
+//    effect: @escaping (InputSlot<Arguments>, ErasedStateSlot<LocalStateFrom>, StateSlot<Arguments, LocalStateFrom, LocalStateTo>, Arguments) -> Void) -> StateTransitionTriggerWithSideEffect<Arguments, LocalStateFrom, LocalStateTo> {
 //        return StateTransitionTriggerWithSideEffect(inputSlot: transitionTrigger.inputSlot, transition: transitionTrigger.transition, sideEffect: effect)
 //}
 
@@ -137,12 +137,12 @@ public class StateMachine {
         self.inputToTransitionTriggers = inputToTransitionTriggers
     }
 
-    public func send(_ Arguments: StateMachineInput) {
-        Arguments(self)
+    public func send(_ input: StateMachineInput) {
+        input(self)
     }
 
-    public func send(_ Arguments: InputSlot<Void>) {
-        Arguments.withArgs(())(self)
+    public func send(_ input: InputSlot<Void>) {
+        input.withArgs(())(self)
     }
 
     func setNextState(state: CurrentState) {
@@ -152,11 +152,11 @@ public class StateMachine {
 
 public typealias NoArguments = Void
 
-public protocol State: Equatable, AnyState {
+public protocol State: Equatable {
     associatedtype Arguments
-    associatedtype PreviousState
+    associatedtype MappedState
 
-    static func create(arguments: Arguments, previousState: PreviousState) -> Self
+    static func create(arguments: Arguments, state: MappedState) -> Self
 }
 
 extension State {
@@ -173,18 +173,20 @@ extension State {
     }
 }
 
-public class StateTransition<Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
-    let from: StateSlotWithLocalData<StateFrom>
+public class StateTransition<Arguments, StateFrom, StateTo: State> where StateTo.Arguments == Arguments {
+    let from: ErasedStateSlot<StateFrom>
+    let map: (StateFrom) -> StateTo.MappedState
     let to: StateSlot<Arguments, StateTo>
 
-    init(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>) {
+    init(from: ErasedStateSlot<StateFrom>, to: StateSlot<Arguments, StateTo>, map: @escaping (StateFrom) -> StateTo.MappedState) {
         self.from = from
         self.to = to
+        self.map = map
     }
 
     func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
         let previousState = stateMachine.currentState.localState as! StateFrom
-        let nextState = StateTo.create(arguments: arguments, previousState: previousState)
+        let nextState = StateTo.create(arguments: arguments, state: map(previousState))
         let state = StateMachine.CurrentState(
             slotUuid: to.uuid,
             localState: nextState
@@ -194,29 +196,29 @@ public class StateTransition<Arguments, StateFrom: AnyState, StateTo: State> whe
 }
 
 
-//public protocol StateTakingInput: State {
-//    typealias PreviousState = AnyState
-//
-//    static func create(arguments: Arguments) -> Self
-//}
-//
-//extension StateTakingInput {
-//    public static func create(arguments: Arguments, previousState: AnyState) -> Self {
-//        return self.create(arguments: arguments)
-//    }
-//}
-//
-//public protocol StateUsingPreviousState: State {
-//    typealias Arguments = NoArguments
-//
-//    static func create(previousState: PreviousState) -> Self
-//}
-//
-//extension StateUsingPreviousState {
-//    public static func create(arguments: NoArguments, previousState: PreviousState) -> Self {
-//        return self.create(previousState: previousState)
-//    }
-//}
+public protocol StateTakingInput: State {
+    typealias MappedState = Void
+
+    static func create(arguments: Arguments) -> Self
+}
+
+extension StateTakingInput {
+    public static func create(arguments: Arguments, state: Void) -> Self {
+        return self.create(arguments: arguments)
+    }
+}
+
+public protocol StateUsingMappedState: State {
+    typealias Arguments = NoArguments
+
+    static func create(state: MappedState) -> Self
+}
+
+extension StateUsingMappedState {
+    public static func create(arguments: NoArguments, state: MappedState) -> Self {
+        return self.create(state: state)
+    }
+}
 
 enum LaunchedFrom {
     case fresh
@@ -228,21 +230,13 @@ enum DeepLink {
     case friendRequest(String)
 }
 
-class DeepLinkedState: AnyState {
-    let deepLink: DeepLink?
-    init(deepLink: DeepLink?) {
-        self.deepLink = deepLink
-    }
-}
-
-
 class StatedTests: XCTestCase {
 
     public struct UninitializedState: State {
         public typealias Arguments = Void
-        public typealias PreviousState = Void
+        public typealias MappedState = Void
 
-        public static func create(arguments: Void, previousState: Void) -> UninitializedState {
+        public static func create(arguments: Void, state: Void) -> UninitializedState {
             return UninitializedState()
         }
 
@@ -250,11 +244,13 @@ class StatedTests: XCTestCase {
     }
 
 
-    final class InitializedState: DeepLinkedState, State {
-        typealias PreviousState = UninitializedState // boooo
+    final class InitializedState: StateTakingInput {
+        typealias MappedState = Void // boooo
         typealias Arguments = LaunchedFrom
 
-        static func create(arguments: LaunchedFrom, previousState: UninitializedState) -> StatedTests.InitializedState {
+        let deepLink: DeepLink?
+
+        static func create(arguments: LaunchedFrom) -> StatedTests.InitializedState {
             let deepLink: DeepLink?
             switch arguments {
             case .fresh:
@@ -265,32 +261,34 @@ class StatedTests: XCTestCase {
             return InitializedState(deepLink: deepLink)
         }
 
-        private override init(deepLink: DeepLink?) {
-            super.init(deepLink: deepLink)
+        private init(deepLink: DeepLink?) {
+            self.deepLink = deepLink
         }
     }
 
-    final class IndexingState: DeepLinkedState, State  {
-        typealias PreviousState = InitializedState // boooo
-        typealias Arguments = Void
-
-        static func create(arguments: Void, previousState: InitializedState) -> StatedTests.IndexingState {
-            return IndexingState(deepLink: previousState.deepLink)
-        }
-
-        private override init(deepLink: DeepLink?) {
-            super.init(deepLink: deepLink)
-        }
-    }
-
-    struct LoggedInState: State {
-        typealias PreviousState = DeepLinkedState // boooo
+    final class IndexingState: State  {
+        typealias MappedState = DeepLink?
         typealias Arguments = Void
 
         let deepLink: DeepLink?
 
-        static func create(arguments: Void, previousState: DeepLinkedState) -> StatedTests.LoggedInState {
-            return LoggedInState(deepLink: previousState.deepLink)
+        static func create(arguments: Void, state: DeepLink?) -> StatedTests.IndexingState {
+            return IndexingState(deepLink: state)
+        }
+
+        private init(deepLink: DeepLink?) {
+            self.deepLink = deepLink
+        }
+    }
+
+    struct LoggedInState: State {
+        typealias MappedState = DeepLink?
+        typealias Arguments = Void
+
+        let deepLink: DeepLink?
+
+        static func create(arguments: Void, state: DeepLink?) -> StatedTests.LoggedInState {
+            return LoggedInState(deepLink: state)
         }
 
         private init(deepLink: DeepLink?) {
@@ -304,24 +302,10 @@ class StatedTests: XCTestCase {
             static let initialized = InitializedState.slot
             static let indexing = IndexingState.slot
             static let loggedIn = LoggedInState.slot
-
-//            static let uninitialized = state(takingInput: { (launchedFrom: LaunchedFrom) -> DeepLink? in
-//                switch launchedFrom {
-//                case .fresh:
-//                    return nil
-//                case .url:
-//                    return DeepLink.viewPost("Blah")
-//                }
-//            })
-//
-//            static let initialized = state(usingPreviousState: { (deepLink: DeepLink?) -> DeepLink? in
-//                return deepLink
-//            })// This now forward on as a composed up state of `FromUrl`/Deep navigation link destination for app
         }
 
         struct Inputs {
-//            static let initialize = input(taking: LaunchedFrom.self) // Input FromUrl
-            static let initialize = input()
+            static let initialize = input(taking: LaunchedFrom.self)
             static let upgrade = input()
             static let indexDatabase = input()
             static let logIn = input() // Take in Account
@@ -336,24 +320,19 @@ class StatedTests: XCTestCase {
 
         init() {
             machine = StateMachine(initialState: UninitializedState(), mappings: [])
-            let tsn = States.uninitialized.to(States.initialized)
-            tsn.trigger(withInput: .fresh, stateMachine: machine)
 
-            States.uninitialized.to(States.initialized)
-            States.initialized.to(States.indexing)
+            States.uninitialized._to(States.initialized) { _ in }
+            States.initialized._to(States.indexing) { $0.deepLink }
+            States.indexing._to(States.loggedIn) { $0.deepLink }
+            States.initialized._to(States.loggedIn) { $0.deepLink }
 
-//            States.indexing.to(States.loggedIn)
-            States.initialized.to(States.loggedIn)
-
-
-//            <Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments
-//            init(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>)
+            machine.send(Inputs.initialize.withArgs(.fresh))
         }
         
         // MARK: Internal methods
         
         func initialize() {
-            machine.send(Inputs.initialize)
+            machine.send(Inputs.initialize.withArgs(.fresh))
         }
     }
 
