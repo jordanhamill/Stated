@@ -2,7 +2,7 @@ import XCTest
 //import Stated
 
 // todo relax StateFrom: State to just blank StateFrom
-public class StateTransition<Arguments, StateFrom: State, StateTo: State> where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
+public class StateTransition<Arguments, StateFrom, StateTo: State> where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
     let from: StateFrom.Type
     let to: StateTo.Type
 
@@ -49,7 +49,7 @@ public class ErasedStateTransitionTrigger {
     }
 }
 
-public class StateTransitionTrigger<Arguments, StateFrom: State, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
+public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: ErasedStateTransitionTrigger where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
     let inputSlot: InputSlot<Arguments>
     let transition: StateTransition<Arguments, StateFrom, StateTo>
 
@@ -402,6 +402,7 @@ class StatedTests: XCTestCase {
                 static let initialized = InitializedState.slot
             }
 
+            // This is passing in the wrong thing as state from - not uninitialized iself but uninitialized.Args which is Void...
             let tsn = NewStates.uninitialized.to(NewStates.initialized)
 
 //            tsn.trigger(withInput: .fresh, stateMachine: machine)
