@@ -1,11 +1,11 @@
 import XCTest
 //import Stated
 
-infix operator =>: MultiplicationPrecedence
-public func => <Arguments, StateFrom, StateTo: State>(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, StateFrom, StateTo>
-    where StateTo.Arguments == Arguments, StateTo.PreviousState: AnyState {
-        return from.to(to)
-}
+//infix operator =>: MultiplicationPrecedence
+//public func => <Arguments, StateFrom, StateTo: State>(from: StateSlotWithLocalData<StateFrom>, to: StateSlot<Arguments, StateTo>) -> StateTransition<Arguments, StateFrom, StateTo>
+//    where StateTo.Arguments == Arguments, StateTo.PreviousState: AnyState {
+//        return from.to(to)
+//}
 
 public class ErasedStateTransitionTrigger {
     let inputUuid: String
@@ -173,7 +173,7 @@ extension State {
     }
 }
 
-public class StateTransition<Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments {//, StateTo.PreviousState == StateFrom {
+public class StateTransition<Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments, StateTo.PreviousState == StateFrom {
     let from: StateSlotWithLocalData<StateFrom>
     let to: StateSlot<Arguments, StateTo>
 
@@ -183,7 +183,7 @@ public class StateTransition<Arguments, StateFrom: AnyState, StateTo: State> whe
     }
 
     func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
-        let previousState = stateMachine.currentState.localState as! StateTo.PreviousState
+        let previousState = stateMachine.currentState.localState as! StateFrom
         let nextState = StateTo.create(arguments: arguments, previousState: previousState)
         let state = StateMachine.CurrentState(
             slotUuid: to.uuid,
@@ -228,6 +228,14 @@ enum DeepLink {
     case friendRequest(String)
 }
 
+class DeepLinkedState: AnyState {
+    let deepLink: DeepLink?
+    init(deepLink: DeepLink?) {
+        self.deepLink = deepLink
+    }
+}
+
+
 class StatedTests: XCTestCase {
 
     public struct UninitializedState: State {
@@ -241,11 +249,10 @@ class StatedTests: XCTestCase {
         init() { }//TODO
     }
 
-    struct InitializedState: State {
+
+    final class InitializedState: DeepLinkedState, State {
         typealias PreviousState = UninitializedState // boooo
         typealias Arguments = LaunchedFrom
-
-        let deepLink: DeepLink?
 
         static func create(arguments: LaunchedFrom, previousState: UninitializedState) -> StatedTests.InitializedState {
             let deepLink: DeepLink?
@@ -258,6 +265,34 @@ class StatedTests: XCTestCase {
             return InitializedState(deepLink: deepLink)
         }
 
+        private override init(deepLink: DeepLink?) {
+            super.init(deepLink: deepLink)
+        }
+    }
+
+    final class IndexingState: DeepLinkedState, State  {
+        typealias PreviousState = InitializedState // boooo
+        typealias Arguments = Void
+
+        static func create(arguments: Void, previousState: InitializedState) -> StatedTests.IndexingState {
+            return IndexingState(deepLink: previousState.deepLink)
+        }
+
+        private override init(deepLink: DeepLink?) {
+            super.init(deepLink: deepLink)
+        }
+    }
+
+    struct LoggedInState: State {
+        typealias PreviousState = DeepLinkedState // boooo
+        typealias Arguments = Void
+
+        let deepLink: DeepLink?
+
+        static func create(arguments: Void, previousState: DeepLinkedState) -> StatedTests.LoggedInState {
+            return LoggedInState(deepLink: previousState.deepLink)
+        }
+
         private init(deepLink: DeepLink?) {
             self.deepLink = deepLink
         }
@@ -267,6 +302,8 @@ class StatedTests: XCTestCase {
         struct States {
             static let uninitialized = UninitializedState.slot
             static let initialized = InitializedState.slot
+            static let indexing = IndexingState.slot
+            static let loggedIn = LoggedInState.slot
 
 //            static let uninitialized = state(takingInput: { (launchedFrom: LaunchedFrom) -> DeepLink? in
 //                switch launchedFrom {
@@ -299,8 +336,14 @@ class StatedTests: XCTestCase {
 
         init() {
             machine = StateMachine(initialState: UninitializedState(), mappings: [])
-            let tsn = States.uninitialized => States.initialized
+            let tsn = States.uninitialized.to(States.initialized)
             tsn.trigger(withInput: .fresh, stateMachine: machine)
+
+            States.uninitialized.to(States.initialized)
+            States.initialized.to(States.indexing)
+
+//            States.indexing.to(States.loggedIn)
+            States.initialized.to(States.loggedIn)
 
 
 //            <Arguments, StateFrom: AnyState, StateTo: State> where StateTo.Arguments == Arguments
