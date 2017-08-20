@@ -1,19 +1,21 @@
-public struct StateTransition<State> {
-    let currentStateMatches: (State) -> Bool
-    let nextState: State
+public class StateTransition<Arguments, StateFrom, StateTo: State> where StateTo.Arguments == Arguments {
+    let from: ErasedStateSlot<StateFrom>
+    let map: (StateFrom) -> StateTo.MappedState
+    let to: StateSlot<Arguments, StateTo>
 
-    fileprivate init(currentStateCondition: @escaping (State) -> Bool, nextState: State) {
-        self.currentStateMatches = currentStateCondition
-        self.nextState = nextState
+    init(from: ErasedStateSlot<StateFrom>, to: StateSlot<Arguments, StateTo>, map: @escaping (StateFrom) -> StateTo.MappedState) {
+        self.from = from
+        self.to = to
+        self.map = map
     }
-}
 
-infix operator =>: MultiplicationPrecedence
-
-public func => <State: Equatable>(state: State, nextState: State) -> StateTransition<State> {
-    return { $0 == state } => nextState
-}
-
-public func => <State>(condition: @escaping (State) -> Bool, nextState: State) -> StateTransition<State> {
-    return StateTransition(currentStateCondition: condition, nextState: nextState)
+    func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
+        let previousState = stateMachine.currentState.localState as! StateFrom
+        let nextState = StateTo.create(arguments: arguments, state: map(previousState))
+        let state = StateMachine.CurrentState(
+            stateId: to.stateId,
+            localState: nextState
+        )
+        stateMachine.setNextState(state: state)
+    }
 }
