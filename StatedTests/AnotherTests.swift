@@ -1,21 +1,18 @@
 import XCTest
 
-//public typealias AnyMappedState = Void
-
-
 public class ErasedStateSlot<StateForSlot>: Equatable, Hashable {
-    let uuid: String
+    let stateId: String
 
-    init() { // TODO access
-        self.uuid = UUID().uuidString // TODO
+    fileprivate init(stateId: String) {
+        self.stateId = stateId
     }
 
     public static func ==(lhs: ErasedStateSlot, rhs: ErasedStateSlot) -> Bool {
-        return lhs.uuid == rhs.uuid
+        return lhs.stateId == rhs.stateId
     }
 
     public var hashValue: Int {
-        return uuid.hashValue
+        return stateId.hashValue
     }
 
     public func _to<Arguments, StateTo: State>(_ to: StateSlot<Arguments, StateTo>, map: @escaping (StateForSlot) -> StateTo.MappedState) -> StateTransition<Arguments, StateForSlot, StateTo> {
@@ -24,7 +21,7 @@ public class ErasedStateSlot<StateForSlot>: Equatable, Hashable {
 }
 
 public class StateSlot<Arguments, StateForSlot: State>: ErasedStateSlot<StateForSlot> {
-    public override init() {
-        super.init()
+    public init() {
+        super.init(stateId: StateForSlot.stateId)
     }
 }
