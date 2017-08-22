@@ -113,6 +113,7 @@ class StatedTests: XCTestCase {
         }
 
         // MARK: Private propteries
+
         var machine: StateMachine!
 
         // MARK: Lifecycle

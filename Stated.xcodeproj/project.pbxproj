@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		722A5F221F4CA95F00B07302 /* SimpleStatedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722A5F211F4CA95F00B07302 /* SimpleStatedTests.swift */; };
 		7252D91C1F4C3065008039EE /* DSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7252D91B1F4C3065008039EE /* DSL.swift */; };
 		727499B21F499E1600DDF65E /* StateSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727499B11F499E1600DDF65E /* StateSlot.swift */; };
 		727499B41F499E2800DDF65E /* State.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727499B31F499E2800DDF65E /* State.swift */; };
@@ -30,6 +31,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		722A5F211F4CA95F00B07302 /* SimpleStatedTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SimpleStatedTests.swift; sourceTree = "<group>"; };
 		7252D91B1F4C3065008039EE /* DSL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DSL.swift; sourceTree = "<group>"; };
 		727499B11F499E1600DDF65E /* StateSlot.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateSlot.swift; sourceTree = "<group>"; };
 		727499B31F499E2800DDF65E /* State.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = State.swift; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 			children = (
 				72F30E191F30926C0065D887 /* StatedTests.swift */,
 				72F30E1B1F30926C0065D887 /* Info.plist */,
+				722A5F211F4CA95F00B07302 /* SimpleStatedTests.swift */,
 			);
 			path = StatedTests;
 			sourceTree = "<group>";
@@ -233,6 +236,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				72F30E1A1F30926C0065D887 /* StatedTests.swift in Sources */,
+				722A5F221F4CA95F00B07302 /* SimpleStatedTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

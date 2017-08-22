@@ -1,10 +1,5 @@
 import Foundation
 
-//public enum TransitionResult<State, Input> {
-//    case success(old: State, new: State, input: Input)
-//    case failure(currentState: State, input: Input)
-//}
-
 public typealias StateMachineInput = (StateMachine) -> Void
 
 public class StateMachine {
@@ -16,6 +11,10 @@ public class StateMachine {
             return lhs.stateId == rhs.stateId
         }
     }
+
+    // MARK: Public
+
+    public var onTransition: ((CurrentState) -> Void)?
 
     // MARK: Internal
 
@@ -53,10 +52,16 @@ public class StateMachine {
         send(input.withArgs(()))
     }
 
+    public func inspectCurrentState(inspect: (CurrentState) -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        inspect(currentState)
+    }
+
     // MARK: Internal
 
     func setNextState(state: CurrentState) {
         lock.lock(); defer { lock.unlock() }
         currentState = state
+        onTransition?(currentState)
     }
 }
