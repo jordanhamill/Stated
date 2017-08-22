@@ -121,8 +121,16 @@ class StatedTests: XCTestCase {
                 return state.deepLink
             }
 
-            func initialize(machine: StateMachine, input: SentInput<LaunchedFrom>, from: UninitializedState, to: InitializedState) -> Void {
+            func initialize(machine: StateMachine, to: InitializedState, from: UninitializedState, input: SentInput<LaunchedFrom>) {
 
+            }
+
+            func sideEffect(machine: StateMachine) {
+
+            }
+
+            func sideEffectWithDeepLink(machine: StateMachine, to: StateWithDeepLink, from: Any) {
+                print("From \(from)", "To", to)
             }
 
             let _: [AnyStateTransitionTrigger] = [
@@ -164,10 +172,10 @@ class StatedTests: XCTestCase {
             let mappings: [AnyStateTransitionTrigger] = [
                 /* Input             |        from          =>    passes    =>        to          | side effect */
                 Inputs.initialize    | States.uninitialized                 => States.initialized | initialize,
-                Inputs.indexDatabase | States.initialized   => passDeepLink => States.indexing    | { print($0) },
-                Inputs.logIn         | States.indexing      => passDeepLink => States.loggedIn    | { print($0) },
-                Inputs.logIn         | States.initialized   => passDeepLink => States.loggedIn    | { print($0) },
-                Inputs.logOut        | States.loggedIn                      => States.loggedOut   | { print($0) },
+                Inputs.indexDatabase | States.initialized   => passDeepLink => States.indexing    | sideEffectWithDeepLink,
+                Inputs.logIn         | States.indexing      => passDeepLink => States.loggedIn    | sideEffectWithDeepLink,
+                Inputs.logIn         | States.initialized   => passDeepLink => States.loggedIn    | sideEffectWithDeepLink,
+                Inputs.logOut        | States.loggedIn                      => States.loggedOut   | { print($1, $2, $3) },
             ]
             machine = StateMachine(initialState: UninitializedState(), mappings: mappings)
         }

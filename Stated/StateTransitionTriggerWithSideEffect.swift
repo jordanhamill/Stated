@@ -21,10 +21,10 @@ public func ==<Arguments>(lhs: SentInput<Arguments>, rhs: InputSlot<Arguments>) 
 }
 
 public class StateTransitionTriggerWithSideEffect<Arguments, StateFrom, StateTo: State>: StateTransitionTrigger<Arguments, StateFrom, StateTo> where StateTo.Arguments == Arguments {
-    public let sideEffect: (StateMachine, SentInput<Arguments>, StateFrom, StateTo) -> Void
+    public let sideEffect: (StateMachine, StateTo, StateFrom, SentInput<Arguments>) -> Void
 
     public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, StateFrom, StateTo>,
-                sideEffect: @escaping (StateMachine, SentInput<Arguments>, StateFrom, StateTo) -> Void) {
+                sideEffect: @escaping (StateMachine, StateTo, StateFrom, SentInput<Arguments>) -> Void) {
         self.sideEffect = sideEffect
         super.init(inputSlot: inputSlot, transition: transition)
     }
@@ -36,7 +36,7 @@ public class StateTransitionTriggerWithSideEffect<Arguments, StateFrom, StateTo:
             break
         case .triggered(let arguments, let fromState, let toState):
             let withArgs = SentInput<Arguments>(inputSlot: inputSlot, arguments: arguments as! Arguments)
-            sideEffect(stateMachine, withArgs, fromState as! StateFrom, toState as! StateTo)
+            sideEffect(stateMachine, toState as! StateTo, fromState as! StateFrom, withArgs)
         }
         return result
     }
