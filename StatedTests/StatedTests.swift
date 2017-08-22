@@ -1,6 +1,10 @@
 import XCTest
 @testable import Stated
 
+struct Account {
+
+}
+
 enum LaunchedFrom {
     case fresh
     case url(URL)
@@ -11,13 +15,16 @@ enum DeepLink {
     case friendRequest(String)
 }
 
-class StatedTests: XCTestCase {
+protocol StateWithDeepLink {
+    var deepLink: DeepLink? { get }
+}
 
-    public struct UninitializedState: State {
+class StatedTests: XCTestCase {
+    public struct UninitializedState: SimpleState {
         public typealias Arguments = Void
         public typealias MappedState = Void
 
-        public static func create(arguments: Void, state: Void) -> UninitializedState {
+        public static func create() -> UninitializedState {
             return UninitializedState()
         }
 
@@ -25,8 +32,8 @@ class StatedTests: XCTestCase {
     }
 
 
-    final class InitializedState: StateTakingInput {
-        typealias MappedState = Void // boooo
+    struct InitializedState: StateTakingInput, StateWithDeepLink {
+        typealias MappedState = Void
         typealias Arguments = LaunchedFrom
 
         let deepLink: DeepLink?
@@ -47,13 +54,13 @@ class StatedTests: XCTestCase {
         }
     }
 
-    final class IndexingState: State  {
+    struct IndexingState: StateUsingMappedState, StateWithDeepLink  {
         typealias MappedState = DeepLink?
         typealias Arguments = Void
 
         let deepLink: DeepLink?
 
-        static func create(arguments: Void, state: DeepLink?) -> StatedTests.IndexingState {
+        static func create(state: DeepLink?) -> StatedTests.IndexingState {
             return IndexingState(deepLink: state)
         }
 
@@ -62,18 +69,29 @@ class StatedTests: XCTestCase {
         }
     }
 
-    struct LoggedInState: State {
+    struct LoggedInState: State, StateWithDeepLink {
         typealias MappedState = DeepLink?
-        typealias Arguments = Void
+        typealias Arguments = Account
 
         let deepLink: DeepLink?
+        let account: Account
 
-        static func create(arguments: Void, state: DeepLink?) -> StatedTests.LoggedInState {
-            return LoggedInState(deepLink: state)
+        static func create(arguments: Account, state: DeepLink?) -> StatedTests.LoggedInState {
+            return LoggedInState(account: arguments, deepLink: state)
         }
 
-        private init(deepLink: DeepLink?) {
+        private init(account: Account, deepLink: DeepLink?) {
+            self.account = account
             self.deepLink = deepLink
+        }
+    }
+
+    struct LoggedOutState: SimpleState {
+        typealias MappedState = Void
+        typealias Arguments = Void
+
+        static func create() -> LoggedOutState {
+            return LoggedOutState()
         }
     }
 
@@ -83,14 +101,15 @@ class StatedTests: XCTestCase {
             static let initialized = InitializedState.slot
             static let indexing = IndexingState.slot
             static let loggedIn = LoggedInState.slot
+            static let loggedOut = LoggedOutState.slot
         }
 
         struct Inputs {
-            static let initialize = input(taking: LaunchedFrom.self)
-            static let upgrade = input()
-            static let indexDatabase = input()
-            static let logIn = input() // Take in Account
-            static let logOut = input()
+            static let initialize = input("initialize", taking: LaunchedFrom.self)
+            static let upgrade = input("upgrade")
+            static let indexDatabase = input("indexDatabase")
+            static let logIn = input("logIn", taking: Account.self)
+            static let logOut = input("logOut")
         }
 
         // MARK: Private propteries
@@ -98,12 +117,57 @@ class StatedTests: XCTestCase {
 
         // MARK: Lifecycle
         init() {
-            let mappings: [ErasedStateTransitionTrigger] = [
-                Inputs.initialize    | States.uninitialized._to(States.initialized) { _ in },
-                Inputs.indexDatabase | States.initialized._to(States.indexing) { $0.deepLink },
-                Inputs.logIn         | States.indexing._to(States.loggedIn) { $0.deepLink },
-                Inputs.logIn         | States.initialized._to(States.loggedIn) { $0.deepLink },
-                Inputs.logOut        | States.initialized._to(States.loggedIn) { $0.deepLink }
+            func passDeepLink(_ state: StateWithDeepLink) -> DeepLink? {
+                return state.deepLink
+            }
+
+            func initialize(machine: StateMachine, input: SentInput<LaunchedFrom>, from: UninitializedState, to: InitializedState) -> Void {
+
+            }
+
+            let _: [AnyStateTransitionTrigger] = [
+                Inputs.initialize
+                    .given(States.uninitialized)
+                    .transition(to: States.initialized),
+                Inputs.indexDatabase.given(States.initialized).transition(with: { $0.deepLink }).to(States.indexing),
+                Inputs.logIn.given(States.indexing).transition(with: { $0.deepLink }).to(States.loggedIn),
+                Inputs.logIn.given(States.initialized).transition(with: { $0.deepLink }).to(States.loggedIn),
+                Inputs.logOut.given(States.loggedIn).transition(to: States.loggedOut)
+            ]
+
+            let _: [AnyStateTransitionTrigger] = [
+                Inputs.initialize
+                    .from(States.uninitialized)
+                    .transition(to: States.initialized)
+                    .performingSideEffect(initialize),
+
+                Inputs.indexDatabase
+                    .from(States.initialized)
+                    .passes({ $0.deepLink })
+                    .to(States.indexing),
+
+                Inputs.logIn
+                    .from(States.indexing)
+                    .passes({ $0.deepLink })
+                    .to(States.loggedIn),
+
+                Inputs.logIn
+                    .from(States.initialized)
+                    .passes({ $0.deepLink })
+                    .to(States.loggedIn),
+
+                Inputs.logOut
+                    .from(States.loggedIn)
+                    .transition(to: States.loggedOut)
+            ]
+
+            let mappings: [AnyStateTransitionTrigger] = [
+                /* Input             |        from          =>    passes    =>        to          | side effect */
+                Inputs.initialize    | States.uninitialized                 => States.initialized | initialize,
+                Inputs.indexDatabase | States.initialized   => passDeepLink => States.indexing    | { print($0) },
+                Inputs.logIn         | States.indexing      => passDeepLink => States.loggedIn    | { print($0) },
+                Inputs.logIn         | States.initialized   => passDeepLink => States.loggedIn    | { print($0) },
+                Inputs.logOut        | States.loggedIn                      => States.loggedOut   | { print($0) },
             ]
             machine = StateMachine(initialState: UninitializedState(), mappings: mappings)
         }
@@ -125,9 +189,9 @@ class StatedTests: XCTestCase {
         appLauncher.machine.send(AppLauncher.Inputs.initialize.withArgs(.fresh))
         XCTAssert(appLauncher.machine.currentState == AppLauncher.States.initialized)
 
-        //        appLauncher.machine.send(AppLauncher.Inputs.indexDatabase)
+        appLauncher.machine.send(AppLauncher.Inputs.indexDatabase)
         //        XCTAssert(appLauncher.machine.currentState == AppLauncher.States.indexing)
-        appLauncher.machine.send(AppLauncher.Inputs.logIn)
+        appLauncher.machine.send(AppLauncher.Inputs.logIn.withArgs(Account()))
         XCTAssert(appLauncher.machine.currentState == AppLauncher.States.loggedIn)
         
         // todo build composite state machine - can it be formalized as nicely as article

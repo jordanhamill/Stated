@@ -6,6 +6,7 @@ import Foundation
 //}
 
 public typealias StateMachineInput = (StateMachine) -> Void
+
 public class StateMachine {
     public struct CurrentState: Equatable {
         let stateId: String
@@ -16,15 +17,23 @@ public class StateMachine {
         }
     }
 
-    let mappings: [ErasedStateTransitionTrigger]
-    let inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]]
+    // MARK: Internal
+
+    let mappings: [AnyStateTransitionTrigger]
+    let inputToTransitionTriggers: [String: [AnyStateTransitionTrigger]]
     private(set) var currentState: CurrentState
 
-    public init<InitialState: State>(initialState: InitialState, mappings: [ErasedStateTransitionTrigger]) {
+    // MARK: Private
+
+    private let lock = NSRecursiveLock()
+
+    // MARK: Lifecycle
+
+    public init<InitialState: State>(initialState: InitialState, mappings: [AnyStateTransitionTrigger]) {
         self.currentState = CurrentState(stateId: initialState.stateId, localState: initialState)
         self.mappings = mappings
 
-        var inputToTransitionTriggers: [String: [ErasedStateTransitionTrigger]] = [:]
+        var inputToTransitionTriggers: [String: [AnyStateTransitionTrigger]] = [:]
         for transitionTrigger in mappings {
             var triggers = inputToTransitionTriggers[transitionTrigger.inputUuid] ?? []
             triggers.append(transitionTrigger)
@@ -33,15 +42,21 @@ public class StateMachine {
         self.inputToTransitionTriggers = inputToTransitionTriggers
     }
 
+    // MARK: Public
+
     public func send(_ input: StateMachineInput) {
+        lock.lock(); defer { lock.unlock() }
         input(self)
     }
 
     public func send(_ input: InputSlot<Void>) {
-        input.withArgs(())(self)
+        send(input.withArgs(()))
     }
 
+    // MARK: Internal
+
     func setNextState(state: CurrentState) {
+        lock.lock(); defer { lock.unlock() }
         currentState = state
     }
 }

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7252D91C1F4C3065008039EE /* DSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7252D91B1F4C3065008039EE /* DSL.swift */; };
 		727499B21F499E1600DDF65E /* StateSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727499B11F499E1600DDF65E /* StateSlot.swift */; };
 		727499B41F499E2800DDF65E /* State.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727499B31F499E2800DDF65E /* State.swift */; };
 		727499B61F499E8600DDF65E /* StateTransitionTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727499B51F499E8600DDF65E /* StateTransitionTrigger.swift */; };
@@ -29,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7252D91B1F4C3065008039EE /* DSL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DSL.swift; sourceTree = "<group>"; };
 		727499B11F499E1600DDF65E /* StateSlot.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateSlot.swift; sourceTree = "<group>"; };
 		727499B31F499E2800DDF65E /* State.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = State.swift; sourceTree = "<group>"; };
 		727499B51F499E8600DDF65E /* StateTransitionTrigger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateTransitionTrigger.swift; sourceTree = "<group>"; };
@@ -83,14 +85,15 @@
 		72F30E0D1F30926C0065D887 /* Stated */ = {
 			isa = PBXGroup;
 			children = (
+				7252D91B1F4C3065008039EE /* DSL.swift */,
 				72F30E0F1F30926C0065D887 /* Info.plist */,
-				72F30E251F30928B0065D887 /* StateMachine.swift */,
-				72F30E291F3093060065D887 /* StateTransition.swift */,
-				727499B11F499E1600DDF65E /* StateSlot.swift */,
+				727499B91F499EB900DDF65E /* InputSlot.swift */,
 				727499B31F499E2800DDF65E /* State.swift */,
+				72F30E251F30928B0065D887 /* StateMachine.swift */,
+				727499B11F499E1600DDF65E /* StateSlot.swift */,
+				72F30E291F3093060065D887 /* StateTransition.swift */,
 				727499B51F499E8600DDF65E /* StateTransitionTrigger.swift */,
 				727499B71F499E9700DDF65E /* StateTransitionTriggerWithSideEffect.swift */,
-				727499B91F499EB900DDF65E /* InputSlot.swift */,
 			);
 			path = Stated;
 			sourceTree = "<group>";
@@ -221,6 +224,7 @@
 				727499B81F499E9700DDF65E /* StateTransitionTriggerWithSideEffect.swift in Sources */,
 				72F30E261F30928B0065D887 /* StateMachine.swift in Sources */,
 				727499B61F499E8600DDF65E /* StateTransitionTrigger.swift in Sources */,
+				7252D91C1F4C3065008039EE /* DSL.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -426,6 +430,7 @@
 				72F30E211F30926C0065D887 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		72F30E221F30926C0065D887 /* Build configuration list for PBXNativeTarget "StatedTests" */ = {
 			isa = XCConfigurationList;
@@ -434,6 +439,7 @@
 				72F30E241F30926C0065D887 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

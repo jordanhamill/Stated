@@ -31,6 +31,19 @@ extension StateUsingMappedState {
     }
 }
 
+public protocol SimpleState: State {
+    typealias Arguments = NoArguments
+    typealias MappedState = Void
+
+    static func create() -> Self
+}
+
+extension SimpleState {
+    public static func create(arguments: NoArguments, state: Void) -> Self {
+        return self.create()
+    }
+}
+
 extension State {
     static var stateId: String { return String(describing: Self.self) }
     var stateId: String { return Self.stateId }

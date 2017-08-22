@@ -9,7 +9,7 @@ public class StateTransition<Arguments, StateFrom, StateTo: State> where StateTo
         self.map = map
     }
 
-    func trigger(withInput arguments: Arguments, stateMachine: StateMachine) {
+    func trigger(withInput arguments: Arguments, stateMachine: StateMachine) -> (fromState: StateFrom, toState: StateTo) {
         let previousState = stateMachine.currentState.localState as! StateFrom
         let nextState = StateTo.create(arguments: arguments, state: map(previousState))
         let state = StateMachine.CurrentState(
@@ -17,5 +17,7 @@ public class StateTransition<Arguments, StateFrom, StateTo: State> where StateTo
             localState: nextState
         )
         stateMachine.setNextState(state: state)
+
+        return (previousState, nextState)
     }
 }

@@ -1,10 +1,13 @@
 import Foundation
 
-public struct InputSlot<Arguments>: Equatable, Hashable {
+public struct InputSlot<Arguments>: Equatable, Hashable, CustomDebugStringConvertible {
+    public let friendlyName: String
     let uuid: String
 
-    public init() {
-        self.uuid = UUID().uuidString
+    public init(_ friendlyName: String? = nil) {
+        let uuid = UUID().uuidString
+        self.uuid = uuid
+        self.friendlyName = friendlyName ?? uuid
     }
 
     public func withArgs(_ args: Arguments) -> StateMachineInput {
@@ -12,7 +15,11 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
             guard let potentialTransitions = sm.inputToTransitionTriggers[self.uuid] else { fatalError("Undefined transition") }
 
             for erasedTransitionTrigger in potentialTransitions {
-                if erasedTransitionTrigger.tryTransition(args: args, stateMachine: sm) {
+                let result = erasedTransitionTrigger.tryTransition(args: args, stateMachine: sm)
+                switch result {
+                case .noMatch:
+                    break
+                case .triggered:
                     return
                 }
             }
@@ -28,14 +35,18 @@ public struct InputSlot<Arguments>: Equatable, Hashable {
     public var hashValue: Int {
         return uuid.hashValue
     }
+
+    public var debugDescription: String {
+        return friendlyName
+    }
 }
 
-public func input() -> InputSlot<Void> {
-    return InputSlot()
+public func input(_ friendlyName: String? = nil) -> InputSlot<Void> {
+    return InputSlot(friendlyName)
 }
 
-public func input<Arguments>(taking: Arguments.Type) -> InputSlot<Arguments> {
-    return InputSlot()
+public func input<Arguments>(_ friendlyName: String? = nil, taking: Arguments.Type) -> InputSlot<Arguments> {
+    return InputSlot(friendlyName)
 }
 
 public func ==<Arguments, StateForSlot: State>(lhs: StateMachine.CurrentState, rhs: StateSlot<Arguments, StateForSlot>) -> Bool {
