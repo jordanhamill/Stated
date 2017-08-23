@@ -41,14 +41,6 @@ public struct InputSlot<Arguments>: Equatable, Hashable, CustomDebugStringConver
     }
 }
 
-public func input(_ friendlyName: String? = nil) -> InputSlot<Void> {
-    return InputSlot(friendlyName)
-}
-
-public func input<Arguments>(_ friendlyName: String? = nil, taking: Arguments.Type) -> InputSlot<Arguments> {
-    return InputSlot(friendlyName)
-}
-
 public func ==<Arguments, StateForSlot: State>(lhs: StateMachine.CurrentState, rhs: StateSlot<Arguments, StateForSlot>) -> Bool {
     return lhs.stateId == rhs.stateId
 }
