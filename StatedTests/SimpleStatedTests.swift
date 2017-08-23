@@ -2,37 +2,38 @@ import XCTest
 @testable import Stated
 
 class SimpleStatedTests: XCTestCase {
-    struct UninitializedState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct InitializedState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct UpgradingState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct IndexingState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct LoggedInState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct LoggedOutState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
     class AppLauncher {
+
+        struct UninitializedState: SimpleState {
+            public typealias Arguments = Void
+            public typealias MappedState = Void
+        }
+
+        struct InitializedState: SimpleState {
+            public typealias Arguments = Void
+            public typealias MappedState = Void
+        }
+
+        struct UpgradingState: SimpleState {
+            public typealias Arguments = Void
+            public typealias MappedState = Void
+        }
+
+        struct IndexingState: SimpleState {
+            public typealias Arguments = Void
+            public typealias MappedState = Void
+        }
+
+        struct LoggedInState: SimpleState {
+            public typealias Arguments = Void
+            public typealias MappedState = Void
+        }
+
+        struct LoggedOutState: SimpleState {
+            public typealias Arguments = Void
+            public typealias MappedState = Void
+        }
+
         struct States {
             static let uninitialized = UninitializedState.slot
             static let initialized = InitializedState.slot
@@ -55,6 +56,7 @@ class SimpleStatedTests: XCTestCase {
         var machine: StateMachine!
 
         // MARK: Lifecycle
+
         init(isUpgradePending: Bool, canLogIn: Bool) {
             func initialize(stateMachine: StateMachine) {
                 if isUpgradePending {
@@ -90,7 +92,6 @@ class SimpleStatedTests: XCTestCase {
                 Inputs.indexDatabase | States.initialized   => States.indexing    | indexDatabase,
 
                 Inputs.logIn         | States.indexing      => States.loggedIn    | logIn,
-                Inputs.logIn         | States.initialized   => States.loggedIn    | logIn,
 
                 Inputs.logOut        | States.indexing      => States.loggedOut,
                 Inputs.logOut        | States.loggedIn      => States.loggedOut,

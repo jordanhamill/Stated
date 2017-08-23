@@ -23,7 +23,7 @@
 		722A5F511F4D71FF00B07302 /* TransitionFromStateWithMapDSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722A5F501F4D71FF00B07302 /* TransitionFromStateWithMapDSL.swift */; };
 		722A5F531F4D721100B07302 /* StateTransitionTriggerDSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722A5F521F4D721100B07302 /* StateTransitionTriggerDSL.swift */; };
 		72F30E151F30926C0065D887 /* Stated.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72F30E0B1F30926C0065D887 /* Stated.framework */; };
-		72F30E1A1F30926C0065D887 /* StatedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E191F30926C0065D887 /* StatedTests.swift */; };
+		72F30E1A1F30926C0065D887 /* InputArgsAndMappedStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E191F30926C0065D887 /* InputArgsAndMappedStateTests.swift */; };
 		72F30E261F30928B0065D887 /* StateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E251F30928B0065D887 /* StateMachine.swift */; };
 /* End PBXBuildFile section */
 
@@ -56,7 +56,7 @@
 		72F30E0B1F30926C0065D887 /* Stated.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Stated.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		72F30E0F1F30926C0065D887 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		72F30E141F30926C0065D887 /* StatedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StatedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		72F30E191F30926C0065D887 /* StatedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatedTests.swift; sourceTree = "<group>"; };
+		72F30E191F30926C0065D887 /* InputArgsAndMappedStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputArgsAndMappedStateTests.swift; sourceTree = "<group>"; };
 		72F30E1B1F30926C0065D887 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		72F30E251F30928B0065D887 /* StateMachine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateMachine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -156,7 +156,7 @@
 		72F30E181F30926C0065D887 /* StatedTests */ = {
 			isa = PBXGroup;
 			children = (
-				72F30E191F30926C0065D887 /* StatedTests.swift */,
+				72F30E191F30926C0065D887 /* InputArgsAndMappedStateTests.swift */,
 				72F30E1B1F30926C0065D887 /* Info.plist */,
 				722A5F211F4CA95F00B07302 /* SimpleStatedTests.swift */,
 			);
@@ -295,7 +295,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				72F30E1A1F30926C0065D887 /* StatedTests.swift in Sources */,
+				72F30E1A1F30926C0065D887 /* InputArgsAndMappedStateTests.swift in Sources */,
 				722A5F221F4CA95F00B07302 /* SimpleStatedTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

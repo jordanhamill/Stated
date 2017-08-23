@@ -12,7 +12,7 @@ public class StateMachine {
         }
 
         public var debugDescription: String {
-            return "Current State: \(stateId) {\(localState)}"
+            return "\(stateId) {\(localState)}"
         }
     }
 

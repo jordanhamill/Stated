@@ -17,102 +17,170 @@ import Stated
 
 class AppLauncher {
 
-    // MARK: States
+    // MARK: Create some simple states that hold no data.
 
-    enum State {
-        case uninitialized
-        case initialized
-        case upgrading
-        case indexing
-        case loggedOut
-        case loggedIn
+    struct UninitializedState: SimpleState {
+        public typealias Arguments = Void
+        public typealias MappedState = Void
     }
 
-    // MARK: Inputs
+    struct InitializedState: SimpleState {
+        public typealias Arguments = Void
+        public typealias MappedState = Void
+    }
 
-    enum Input {
-        case initialize
-        case upgrade
-        case indexDatabase
-        case logIn
-        case logOut
+    struct UpgradingState: SimpleState {
+        public typealias Arguments = Void
+        public typealias MappedState = Void
+    }
+
+    struct IndexingState: SimpleState {
+        public typealias Arguments = Void
+        public typealias MappedState = Void
+    }
+
+    struct LoggedInState: SimpleState {
+        public typealias Arguments = Void
+        public typealias MappedState = Void
+    }
+
+    struct LoggedOutState: SimpleState {
+        public typealias Arguments = Void
+        public typealias MappedState = Void
+    }
+
+    // MARK: Define the states we're going to use by creating "slots" in which the system can place a given instance of one of our states
+
+    struct States {
+        static let uninitialized = UninitializedState.slot
+        static let initialized = InitializedState.slot
+        static let upgrading = UpgradingState.slot
+        static let indexing = IndexingState.slot
+        static let loggedIn = LoggedInState.slot
+        static let loggedOut = LoggedOutState.slot
+    }
+
+    // MARK: Define inputs that will be used to trigger transitions between the above states
+
+    struct Inputs {
+        static let initialize = input()
+        static let upgrade = input()
+        static let indexDatabase = input()
+        static let logIn = input()
+        static let logOut = input()
     }
 
     // MARK: Private propteries
 
-    private var machine: StateMachine<State, Input>!
+    private var machine: StateMachine!
 
     // MARK: Lifecycle
 
     init(upgradeService: Upgrade, apiService: APIService, db: PersistenceService, rootViewController: RootViewController) {
 
-        func canLogIn() -> Bool {
-            return !apiService.account.username.isEmpty && apiService.account.hasPassword()
-        }
+        // MARK: Side Effects
 
-        func initialize(send: @escaping (Input) -> Void) {
-            if upgradeService.isUpgradePending() {
-                send(.upgrade)
+        func initialize(stateMachine: StateMachine) {
+            if upgradeService.isUpgradePending {
+                stateMachine.send(Inputs.upgrade)
             } else {
-                send(.indexDatabase)
+                stateMachine.send(Inputs.indexDatabase)
             }
         }
 
-        func upgrade(send: @escaping (Input) -> Void) {
-            rootViewController.showUpgradeController(upgradeService: upgradeService) {
-                // Upgrade successful callback
-                send(.indexDatabase)
-            }
+        func upgrade(stateMachine: StateMachine) {
+            rootViewController.showUpgradeProgressController(onCompletion: {
+                stateMachine.send(Inputs.indexDatabase)
+            })
         }
 
-        func indexDatabase(send: @escaping (Input) -> Void) {
-            db.createSecondaryIndices(on: SharedNote.self)
-
-            if canLogIn() {
-                send(.logIn)
-            } else {
-                send(.logOut)
-            }
+        func indexDatabase(stateMachine: StateMachine) {
+            db.createSecondaryIndices(onCompletion: {
+                if apiService.canLogIn {
+                    stateMachine.send(Inputs.logIn)
+                } else {
+                    stateMachine.send(Inputs.logOut)
+                }
+            })
         }
 
-        func logIn(send: @escaping (Input) -> Void) {
-            rootViewController.showTourListViewController {
-                // Log out callback
-                send(.logOut)
-            }
+        func logIn(stateMachine: StateMachine) {
+            rootViewController.showLoggedInExperience(apiService: apiService, db: db, onLogOut: {
+                stateMachine.send(Inputs.logOut)
+            })
         }
 
-        func logOut(send:  @escaping (Input) -> Void) {
-            apiService.clearAuthentication()
-            rootViewController.showLoginViewController {
-                // Login successful callback
-                send(.logIn)
-            }
+        func logOut(stateMachine: StateMachine) {
+            rootViewController.showLogInViewController(onLoggedIn: {
+                stateMachine.send(Inputs.logIn)
+            })
         }
 
-        let mappings: [StateMappingWithEffect<State, Input>] = [
-            /* Input        |      from             to       |   effect    */
-            .initialize     | .uninitialized => .initialized | initialize,
+        // MARK: Define state machine using the inputs, slots and side effects from above
 
-            .upgrade        | .initialized   => .upgrading   | upgrade,
+        // This is the long-form syntax and is exactly equivalent to the operator syntax below
+        let mappings: [AnyStateTransitionTrigger] = [
+            Inputs.initialize
+                .given(States.uninitialized)
+                .transition(to: States.initialized)
+                .performingSideEffect(initialize),
 
-            .indexDatabase  | .initialized   =>  .indexing   | indexDatabase,
-            .indexDatabase  | .upgrading     =>  .indexing   | indexDatabase,
+            Inputs.upgrade
+                .given(States.initialized)
+                .transition(to: States.upgrading)
+                .performingSideEffect(upgrade),
 
-            .logIn          | .indexing      => .loggedIn    | logIn,
-            .logIn          | .loggedOut     => .loggedIn    | logIn,
+            Inputs.indexDatabase
+                .given(States.upgrading)
+                .transition(to: States.indexing)
+                .performingSideEffect(indexDatabase),
+            Inputs.indexDatabase
+                .given(States.initialized)
+                .transition(to: States.indexing)
+                .performingSideEffect(indexDatabase),
 
-            .logOut         | .indexing      => .loggedOut   | logOut,
-            .logOut         | .loggedIn      => .loggedOut   | logOut
+            Inputs.logIn
+                .given(States.indexing)
+                .transition(to: States.loggedIn)
+                .performingSideEffect(logIn),
+            Inputs.logIn
+                .given(States.loggedOut)
+                .transition(to: States.loggedIn)
+                .performingSideEffect(logIn),
+
+            Inputs.logOut
+                .given(States.indexing)
+                .transition(to: States.loggedOut),
+                .performingSideEffect(logOut)
+            Inputs.logOut
+                .given(States.loggedIn)
+                .transition(to: States.loggedOut)
+                .performingSideEffect(logOut)
         ]
 
-        machine = StateMachine<State, Input>(initialState: .uninitialized, mappings: mappings)
+        // This is the shorter operator syntax and is exactly equivalent to the syntax above.
+        // It is very easy to visualize how the system should behave in this case
+        let mappings: [AnyStateTransitionTrigger] = [
+            /* Input             |        from          =>        to          | side effect */
+            Inputs.initialize    | States.uninitialized => States.initialized | initialize,
+
+            Inputs.upgrade       | States.initialized   => States.upgrading   | upgrade,
+
+            Inputs.indexDatabase | States.upgrading     => States.indexing    | indexDatabase,
+            Inputs.indexDatabase | States.initialized   => States.indexing    | indexDatabase,
+
+            Inputs.logIn         | States.indexing      => States.loggedIn    | logIn,
+
+            Inputs.logOut        | States.indexing      => States.loggedOut   | logOut,
+            Inputs.logOut        | States.loggedIn      => States.loggedOut   | logOut,
+        ]
+        machine = StateMachine(initialState: UninitializedState(), mappings: mappings)
     }
 
     // MARK: Internal methods
 
     func initialize() {
-        machine.send(input: .initialize)
+        machine.send(Inputs.initialize)
     }
 }
 ```
