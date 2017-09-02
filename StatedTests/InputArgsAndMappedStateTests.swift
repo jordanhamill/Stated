@@ -149,7 +149,7 @@ class InputArgsAndMappedStateTests: XCTestCase {
 
         appLauncher.machine.inspectCurrentState { currentState in
             XCTAssert(currentState == AppLauncher.States.loggedIn)
-            let state = currentState.localState as! AppLauncher.LoggedInState
+            let state = currentState as! AppLauncher.LoggedInState
             XCTAssertEqual(state.account.name, "Testing name")
             XCTAssertNil(state.deepLink)
         }
@@ -161,7 +161,7 @@ class InputArgsAndMappedStateTests: XCTestCase {
 
         appLauncher.machine.inspectCurrentState { currentState in
             XCTAssert(currentState == AppLauncher.States.loggedIn)
-            let state = currentState.localState as! AppLauncher.LoggedInState
+            let state = currentState as! AppLauncher.LoggedInState
             XCTAssertEqual(state.account.name, "Another name")
             XCTAssertEqual(state.deepLink, .viewPost)
         }

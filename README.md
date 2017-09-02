@@ -2,6 +2,7 @@
 A simple state machine implementation with an API shamelessly based upon [RxAutomaton](https://github.com/inamiy/RxAutomaton).
 
 State transitions cause effects that can send a new input to the state machine, errors can be represented by new states and inputs.
+Each state conforms to one of `State`, `SimpleState`, `StateTakingInput` or `StateUsingMappedState`. A state object can receive arguments from a defined input. It can also be passed anything from the previous state
 
 ## Example State Machine
 

@@ -1,7 +1,7 @@
 public class AnyStateTransitionTrigger {
     enum TransitionResult {
         case noMatch
-        case triggered(arguments: Any, fromState: Any, toState: Any)
+        case triggered(arguments: Any, fromState: AnyState, toState: AnyState)
     }
 
     let inputUuid: String
@@ -17,7 +17,7 @@ public class AnyStateTransitionTrigger {
     }
 }
 
-public class StateTransitionTrigger<Arguments, StateFrom, StateTo: State>: AnyStateTransitionTrigger where StateTo.Arguments == Arguments {
+public class StateTransitionTrigger<Arguments, StateFrom: AnyState, StateTo: State>: AnyStateTransitionTrigger where StateTo.Arguments == Arguments {
     let inputSlot: InputSlot<Arguments>
     let transition: StateTransition<Arguments, StateFrom, StateTo>
 

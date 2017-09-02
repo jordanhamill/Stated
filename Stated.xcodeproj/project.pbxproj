@@ -22,6 +22,7 @@
 		722A5F4F1F4D71E700B07302 /* TransitionFromStateDSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722A5F4E1F4D71E700B07302 /* TransitionFromStateDSL.swift */; };
 		722A5F511F4D71FF00B07302 /* TransitionFromStateWithMapDSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722A5F501F4D71FF00B07302 /* TransitionFromStateWithMapDSL.swift */; };
 		722A5F531F4D721100B07302 /* StateTransitionTriggerDSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722A5F521F4D721100B07302 /* StateTransitionTriggerDSL.swift */; };
+		72833EDA1F59DFEA00E19678 /* AnyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72833ED91F59DFEA00E19678 /* AnyState.swift */; };
 		72F30E151F30926C0065D887 /* Stated.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72F30E0B1F30926C0065D887 /* Stated.framework */; };
 		72F30E1A1F30926C0065D887 /* InputArgsAndMappedStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E191F30926C0065D887 /* InputArgsAndMappedStateTests.swift */; };
 		72F30E261F30928B0065D887 /* StateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F30E251F30928B0065D887 /* StateMachine.swift */; };
@@ -53,6 +54,7 @@
 		722A5F4E1F4D71E700B07302 /* TransitionFromStateDSL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransitionFromStateDSL.swift; sourceTree = "<group>"; };
 		722A5F501F4D71FF00B07302 /* TransitionFromStateWithMapDSL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransitionFromStateWithMapDSL.swift; sourceTree = "<group>"; };
 		722A5F521F4D721100B07302 /* StateTransitionTriggerDSL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StateTransitionTriggerDSL.swift; sourceTree = "<group>"; };
+		72833ED91F59DFEA00E19678 /* AnyState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnyState.swift; sourceTree = "<group>"; };
 		72F30E0B1F30926C0065D887 /* Stated.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Stated.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		72F30E0F1F30926C0065D887 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		72F30E141F30926C0065D887 /* StatedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StatedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -103,6 +105,7 @@
 		722A5F361F4D719C00B07302 /* States */ = {
 			isa = PBXGroup;
 			children = (
+				72833ED91F59DFEA00E19678 /* AnyState.swift */,
 				722A5F371F4D719C00B07302 /* SimpleState.swift */,
 				722A5F381F4D719C00B07302 /* State.swift */,
 				722A5F391F4D719C00B07302 /* StateSlot.swift */,
@@ -275,6 +278,7 @@
 			files = (
 				722A5F4B1F4D71B600B07302 /* InputDSL.swift in Sources */,
 				722A5F471F4D719C00B07302 /* StateTransition.swift in Sources */,
+				72833EDA1F59DFEA00E19678 /* AnyState.swift in Sources */,
 				722A5F4F1F4D71E700B07302 /* TransitionFromStateDSL.swift in Sources */,
 				722A5F481F4D719C00B07302 /* StateTransitionTrigger.swift in Sources */,
 				722A5F411F4D719C00B07302 /* InputSlot.swift in Sources */,

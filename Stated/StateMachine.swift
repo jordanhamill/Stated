@@ -3,31 +3,18 @@ import Foundation
 public typealias StateMachineInput = (StateMachine) -> Void
 
 public class StateMachine {
-    public struct CurrentState: Equatable, CustomDebugStringConvertible {
-        public let stateId: String
-        public let localState: Any
-
-        public static func ==(lhs: CurrentState, rhs: CurrentState) -> Bool {
-            return lhs.stateId == rhs.stateId
-        }
-
-        public var debugDescription: String {
-            return "\(stateId) {\(localState)}"
-        }
-    }
-
     // MARK: Public
 
     ///
     /// Triggers when the current state changes
     ///
-    public var onTransition: ((CurrentState) -> Void)?
+    public var onTransition: ((AnyState) -> Void)?
 
     // MARK: Internal
 
     let mappings: [AnyStateTransitionTrigger]
     let inputToTransitionTriggers: [String: [AnyStateTransitionTrigger]]
-    private(set) var currentState: CurrentState
+    private(set) var currentState: AnyState
 
     // MARK: Private
 
@@ -36,7 +23,7 @@ public class StateMachine {
     // MARK: Lifecycle
 
     public init<InitialState: State>(initialState: InitialState, mappings: [AnyStateTransitionTrigger]) {
-        self.currentState = CurrentState(stateId: initialState.stateId, localState: initialState)
+        self.currentState = initialState
         self.mappings = mappings
 
         var inputToTransitionTriggers: [String: [AnyStateTransitionTrigger]] = [:]
@@ -73,14 +60,14 @@ public class StateMachine {
     /// Thread safe inspection of the current state of the system.
     /// - parameter inspect: A closure that has access to the current state.
     ///
-    public func inspectCurrentState(inspect: (CurrentState) -> Void) {
+    public func inspectCurrentState(inspect: (AnyState) -> Void) {
         lock.lock(); defer { lock.unlock() }
         inspect(currentState)
     }
 
     // MARK: Internal
 
-    func setNextState(state: CurrentState) {
+    func setNextState(state: AnyState) {
         lock.lock(); defer { lock.unlock() }
         currentState = state
         onTransition?(currentState)

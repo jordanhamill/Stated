@@ -20,7 +20,7 @@ public func ==<Arguments>(lhs: SentInput<Arguments>, rhs: InputSlot<Arguments>) 
     return lhs.slot.uuid == rhs.uuid
 }
 
-public class StateTransitionTriggerWithSideEffect<Arguments, StateFrom, StateTo: State>: StateTransitionTrigger<Arguments, StateFrom, StateTo> where StateTo.Arguments == Arguments {
+public class StateTransitionTriggerWithSideEffect<Arguments, StateFrom: AnyState, StateTo: State>: StateTransitionTrigger<Arguments, StateFrom, StateTo> where StateTo.Arguments == Arguments {
     public let sideEffect: (StateMachine, StateTo, StateFrom, SentInput<Arguments>) -> Void
 
     public init(inputSlot: InputSlot<Arguments>, transition: StateTransition<Arguments, StateFrom, StateTo>,

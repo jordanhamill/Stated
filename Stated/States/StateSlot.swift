@@ -23,20 +23,3 @@ public class StateSlot<Arguments, StateForSlot: State>: ErasedStateSlot<StateFor
         super.init(stateId: StateForSlot.stateId)
     }
 }
-
-public func ==<Arguments, StateForSlot: State>(lhs: StateSlot<Arguments, StateForSlot>, rhs: ErasedStateSlot<StateForSlot>) -> Bool {
-    return lhs.stateId == rhs.stateId
-}
-
-public func ==<Arguments, StateForSlot: State>(lhs: StateSlot<Arguments, StateForSlot>, rhs: Any) -> Bool {
-    if let state = rhs as? StateForSlot {
-        return lhs.stateId == state.stateId
-    } else if let stateSlot = rhs as? StateSlot<Arguments, StateForSlot> {
-        return lhs.stateId == stateSlot.stateId
-    }
-    return false
-}
-
-public func ==<Arguments, StateForSlot: State>(lhs: Any, rhs: StateSlot<Arguments, StateForSlot>) -> Bool {
-    return rhs == lhs
-}

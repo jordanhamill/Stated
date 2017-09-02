@@ -40,7 +40,3 @@ public struct InputSlot<Arguments>: Equatable, Hashable, CustomDebugStringConver
         return friendlyName
     }
 }
-
-public func ==<Arguments, StateForSlot: State>(lhs: StateMachine.CurrentState, rhs: StateSlot<Arguments, StateForSlot>) -> Bool {
-    return lhs.stateId == rhs.stateId
-}
