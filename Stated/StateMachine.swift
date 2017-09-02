@@ -1,63 +1,75 @@
 import Foundation
 
-public enum TransitionResult<State, Input> {
-    case success(old: State, new: State, input: Input)
-    case failure(currentState: State, input: Input)
-}
+public typealias StateMachineInput = (StateMachine) -> Void
 
-public class StateMachine<State, Input> {
+public class StateMachine {
+    // MARK: Public
 
-    public typealias StateMapping = StateMappingWithEffect<State, Input>
-    public typealias StateMapResult = (state: State, effect: StateMappingWithEffect<State, Input>.Effect)?
+    ///
+    /// Triggers when the current state changes
+    ///
+    public var onTransition: ((AnyState) -> Void)?
 
-    // MARK: Public properties
+    // MARK: Internal
 
-    public private(set) var currentState: State
-    public var onTransition: ((TransitionResult<State, Input>) -> Void)?
+    let mappings: [AnyStateTransitionTrigger]
+    let inputToTransitionTriggers: [String: [AnyStateTransitionTrigger]]
+    private(set) var currentState: AnyState
 
-    // MARK: Private properties
+    // MARK: Private
 
-    private let stateMapping: (State, Input) -> StateMapResult
     private let lock = NSRecursiveLock()
 
-    // MARK: Object lifecycle
+    // MARK: Lifecycle
 
-    public convenience init(initialState: State, mappings: [StateMapping]) {
-        let reduced: (State, Input) -> StateMapResult = { currentState, input in
-            for mappingWithEffect in mappings {
-                let mapping = mappingWithEffect.mapping
-                if mapping.inputMatches(input) && mapping.transition.currentStateMatches(currentState) {
-                    return (mapping.transition.nextState, mappingWithEffect.effect)
-                }
-            }
-
-            return nil
-        }
-        self.init(initialState: initialState, stateMapping: reduced)
-    }
-
-    public init(initialState: State, stateMapping: @escaping (State, Input) -> StateMapResult) {
+    public init<InitialState: State>(initialState: InitialState, mappings: [AnyStateTransitionTrigger]) {
         self.currentState = initialState
-        self.stateMapping = stateMapping
+        self.mappings = mappings
+
+        var inputToTransitionTriggers: [String: [AnyStateTransitionTrigger]] = [:]
+        for transitionTrigger in mappings {
+            var triggers = inputToTransitionTriggers[transitionTrigger.inputUuid] ?? []
+            triggers.append(transitionTrigger)
+            inputToTransitionTriggers[transitionTrigger.inputUuid] = triggers
+        }
+        self.inputToTransitionTriggers = inputToTransitionTriggers
     }
 
-    // MARK: Public methods
+    // MARK: Public
 
-    public func send(input: Input) {
+    ///
+    /// Send an input with arguments to trigger a state change.
+    /// - warning: This will `fatalError` if a transition is not defined for the input + current state.
+    /// - parameter input: Input with arguments. e.g. `anInput.withArgs(100)`
+    ///
+    public func send(_ input: StateMachineInput) {
         lock.lock(); defer { lock.unlock() }
+        input(self)
+    }
 
-        let currentState = self.currentState
-        guard let nextState = stateMapping(currentState, input) else {
-            if let onTransition = onTransition {
-                onTransition(.failure(currentState: currentState, input: input))
-            } else {
-                fatalError("Invalid state transition. Current state: \(currentState) with input: \(input)")
-            }
-            return
-        }
+    ///
+    /// Send an input that does not require arguments to trigger a state change.
+    /// - warning: This will `fatalError` if a transition is not defined for the input + current state.
+    /// - parameter input: Input without arguments.
+    ///
+    public func send(_ input: InputSlot<Void>) {
+        send(input.withArgs(()))
+    }
 
-        self.currentState = nextState.0
-        onTransition?(.success(old: currentState, new: nextState.0, input: input))
-        nextState.effect(input, self.send)
+    ///
+    /// Thread safe inspection of the current state of the system.
+    /// - parameter inspect: A closure that has access to the current state.
+    ///
+    public func inspectCurrentState(inspect: (AnyState) -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        inspect(currentState)
+    }
+
+    // MARK: Internal
+
+    func setNextState(state: AnyState) {
+        lock.lock(); defer { lock.unlock() }
+        currentState = state
+        onTransition?(currentState)
     }
 }
