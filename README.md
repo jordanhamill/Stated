@@ -185,3 +185,35 @@ class AppLauncher {
     }
 }
 ```
+
+## Installation
+
+### Cocoapods
+
+Add Stated to your Podfile:
+```
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '10.0'
+use_frameworks!
+
+target '<Your Target Name>' do
+    pod 'Stated'
+end
+```
+
+Run the following command:
+```
+$ pod install
+```
+
+### Carthage
+
+Add Stated to your Cartfile:
+```
+github "jordanhamill/Stated"
+```
+
+Run the following command:
+```
+$ carthage update
+```

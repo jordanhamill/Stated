@@ -8,5 +8,5 @@ Pod::Spec.new do |spec|
   spec.source       = { :git => 'https://github.com/jordanhamill/StateMachine.git', :tag => '1.1.0' }
   spec.source_files = 'Stated/**/*.{swift}'
 
-  spec.ios.deployment_target  = '9.0'
+  spec.ios.deployment_target  = '10.0'
 end
