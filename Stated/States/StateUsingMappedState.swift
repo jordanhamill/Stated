@@ -1,9 +1,7 @@
 ///
 ///
 ///
-public protocol StateUsingMappedState: State {
-    typealias Arguments = NoArguments
-
+public protocol StateUsingMappedState: State where Arguments == NoArguments {
     static func create(state: MappedState) -> Self
 }
 

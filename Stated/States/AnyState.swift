@@ -16,10 +16,10 @@ extension AnyState {
     }
 }
 
-public func ==<Arguments, StateForSlot: State>(lhs: StateSlot<Arguments, StateForSlot>, rhs: AnyState) -> Bool {
+public func ==<Arguments, StateForSlot>(lhs: StateSlot<Arguments, StateForSlot>, rhs: AnyState) -> Bool {
     return lhs.stateId == rhs.stateId
 }
 
-public func ==<Arguments, StateForSlot: State>(lhs: AnyState, rhs: StateSlot<Arguments, StateForSlot>) -> Bool {
+public func ==<Arguments, StateForSlot>(lhs: AnyState, rhs: StateSlot<Arguments, StateForSlot>) -> Bool {
     return rhs == lhs
 }

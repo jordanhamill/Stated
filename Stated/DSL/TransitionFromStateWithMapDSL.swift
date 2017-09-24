@@ -2,7 +2,7 @@ public struct TransitionFromStateWithMap<InputArguments, ArgumentsForFromState, 
     let transitionFromState: TransitionFromState<InputArguments, ArgumentsForFromState, StateFrom>
     let map: (StateFrom) -> MappedState
 
-    public func to<StateTo: State>(_ to: StateSlot<InputArguments, StateTo>) -> StateTransitionTrigger<InputArguments, StateFrom, StateTo>
+    public func to<StateTo>(_ to: StateSlot<InputArguments, StateTo>) -> StateTransitionTrigger<InputArguments, StateFrom, StateTo>
         where StateTo.Arguments == InputArguments, StateTo.MappedState == MappedState {
             let transition = transitionFromState.from._to(to, map: map)
             return StateTransitionTrigger(inputSlot: transitionFromState.input, transition: transition)
@@ -20,7 +20,7 @@ public struct TransitionFromStateWithMap<InputArguments, ArgumentsForFromState, 
 ///   anInput | fromState => { $0.prop } => toState
 /// ```
 ///
-public func => <ArgumentsForToState, ArgumentsForFromState, StateFrom: State, StateTo: State>(
+public func => <ArgumentsForToState, ArgumentsForFromState, StateFrom, StateTo>(
     transitionFromStateMap: TransitionFromStateWithMap<ArgumentsForToState, ArgumentsForFromState, StateFrom, StateTo.MappedState>,
     toState: StateSlot<ArgumentsForToState, StateTo>) -> StateTransitionTrigger<ArgumentsForToState, StateFrom, StateTo>
     where StateTo.Arguments == ArgumentsForToState {

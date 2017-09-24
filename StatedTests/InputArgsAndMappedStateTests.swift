@@ -26,7 +26,7 @@ class InputArgsAndMappedStateTests: XCTestCase {
         // MARK: States
 
         public struct UninitializedState: SimpleState {
-            public typealias Arguments = Void
+            public typealias Arguments = NoArguments
             public typealias MappedState = Void
         }
 
@@ -61,7 +61,7 @@ class InputArgsAndMappedStateTests: XCTestCase {
         }
         
         public struct LoggedOutState: SimpleState {
-            public typealias Arguments = Void
+            public typealias Arguments = NoArguments
             public typealias MappedState = Void
         }
 

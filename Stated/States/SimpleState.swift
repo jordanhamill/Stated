@@ -1,10 +1,7 @@
 ///
 ///
 ///
-public protocol SimpleState: State {
-    typealias Arguments = NoArguments
-    typealias MappedState = Void
-
+public protocol SimpleState: State where Arguments == NoArguments, MappedState == Void {
     init()
 }
 
