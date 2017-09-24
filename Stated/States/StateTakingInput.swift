@@ -1,9 +1,7 @@
 ///
 ///
 ///
-public protocol StateTakingInput: State {
-    typealias MappedState = Void
-
+public protocol StateTakingInput: State where MappedState == Void {
     static func create(arguments: Arguments) -> Self
 }
 

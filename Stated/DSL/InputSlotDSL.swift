@@ -8,7 +8,7 @@ extension InputSlot {
     /// ```
     /// - parameter fromState: The current state constraint for the transition.
     ///
-    public func given<ArgumentsForFromState, StateFrom: State>(_ fromState: StateSlot<ArgumentsForFromState, StateFrom>) -> TransitionFromState<Arguments, ArgumentsForFromState, StateFrom> {
+    public func given<ArgumentsForFromState, StateFrom>(_ fromState: StateSlot<ArgumentsForFromState, StateFrom>) -> TransitionFromState<Arguments, ArgumentsForFromState, StateFrom> {
         return TransitionFromState(input: self, from: fromState)
     }
 
@@ -23,7 +23,7 @@ extension InputSlot {
     /// ```
     /// - parameter fromState: The current state constraint for the transition.
     ///
-    public func from<ArgumentsForStateSlot, StateForSlot: State>(_ fromState: StateSlot<ArgumentsForStateSlot, StateForSlot>) -> TransitionFromState<Arguments, ArgumentsForStateSlot, StateForSlot> {
+    public func from<ArgumentsForStateSlot, StateForSlot>(_ fromState: StateSlot<ArgumentsForStateSlot, StateForSlot>) -> TransitionFromState<Arguments, ArgumentsForStateSlot, StateForSlot> {
         return given(fromState)
     }
 }
@@ -39,7 +39,7 @@ extension InputSlot {
 ///   let triggerableStateTransition = anInput | fromState => toState
 /// ```
 ///
-public func |<ArgumentsForToState, ArgumentsForFromState, StateFrom: State>(
+public func |<ArgumentsForToState, ArgumentsForFromState, StateFrom>(
     input: InputSlot<ArgumentsForToState>,
     fromState: StateSlot<ArgumentsForFromState, StateFrom>)
     -> TransitionFromState<ArgumentsForToState, ArgumentsForFromState, StateFrom> {

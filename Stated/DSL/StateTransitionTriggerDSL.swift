@@ -43,7 +43,7 @@ extension StateTransitionTrigger {
 ///   let triggerableStateTransition = anInput | fromState => toState | { stateMachine, toState, fromState, input in print("Side Effect") }
 /// ```
 ///
-public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
+public func |<ArgumentsForToState, StateFrom, StateTo>(
     stateTransitionTrigger: StateTransitionTrigger<ArgumentsForToState, StateFrom, StateTo>,
     sideEffect: @escaping (StateMachine, StateTo, StateFrom, SentInput<ArgumentsForToState>) -> Void)
     -> StateTransitionTriggerWithSideEffect<ArgumentsForToState, StateFrom, StateTo> {
@@ -61,7 +61,7 @@ public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
 ///   let triggerableStateTransition = anInput | fromState => toState | { stateMachine, toState, fromState in print("Side Effect") }
 /// ```
 ///
-public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
+public func |<ArgumentsForToState, StateFrom, StateTo>(
     stateTransitionTrigger: StateTransitionTrigger<ArgumentsForToState, StateFrom, StateTo>,
     sideEffect: @escaping (StateMachine, StateTo, StateFrom) -> Void)
     -> StateTransitionTriggerWithSideEffect<ArgumentsForToState, StateFrom, StateTo> {
@@ -79,7 +79,7 @@ public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
 ///   let triggerableStateTransition = anInput | fromState => toState | { stateMachine, toState in print("Side Effect") }
 /// ```
 ///
-public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
+public func |<ArgumentsForToState, StateFrom, StateTo>(
     stateTransitionTrigger: StateTransitionTrigger<ArgumentsForToState, StateFrom, StateTo>,
     sideEffect: @escaping (StateMachine, StateTo) -> Void)
     -> StateTransitionTriggerWithSideEffect<ArgumentsForToState, StateFrom, StateTo> {
@@ -97,7 +97,7 @@ public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
 ///   let triggerableStateTransition = anInput | fromState => toState | { stateMachine in print("Side Effect") }
 /// ```
 ///
-public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
+public func |<ArgumentsForToState, StateFrom, StateTo>(
     stateTransitionTrigger: StateTransitionTrigger<ArgumentsForToState, StateFrom, StateTo>,
     sideEffect: @escaping (StateMachine) -> Void)
     -> StateTransitionTriggerWithSideEffect<ArgumentsForToState, StateFrom, StateTo> {
@@ -115,7 +115,7 @@ public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
 ///   let triggerableStateTransition = anInput | fromState => toState | { print("Side Effect") }
 /// ```
 ///
-public func |<ArgumentsForToState, StateFrom: AnyState, StateTo: State>(
+public func |<ArgumentsForToState, StateFrom, StateTo>(
     stateTransitionTrigger: StateTransitionTrigger<ArgumentsForToState, StateFrom, StateTo>,
     sideEffect: @escaping () -> Void)
     -> StateTransitionTriggerWithSideEffect<ArgumentsForToState, StateFrom, StateTo> {
