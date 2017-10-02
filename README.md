@@ -20,35 +20,12 @@ class AppLauncher {
 
     // MARK: Create some simple states that hold no data.
 
-    struct UninitializedState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct InitializedState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct UpgradingState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct IndexingState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct LoggedInState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
-
-    struct LoggedOutState: SimpleState {
-        public typealias Arguments = Void
-        public typealias MappedState = Void
-    }
+    struct UninitializedState: SimpleState { }
+    struct InitializedState: SimpleState { }
+    struct UpgradingState: SimpleState { }
+    struct IndexingState: SimpleState { }
+    struct LoggedInState: SimpleState { }
+    struct LoggedOutState: SimpleState { }
 
     // MARK: Define the states we're going to use by creating "slots" in which the system can place a given instance of one of our states
 
