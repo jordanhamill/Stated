@@ -1,8 +1,15 @@
 # Stated
-A simple state machine implementation with an API shamelessly based upon [RxAutomaton](https://github.com/inamiy/RxAutomaton).
+A simple state machine implementation with a beautiful DSL.
 
 State transitions cause effects that can send a new input to the state machine, errors can be represented by new states and inputs.
 Each state conforms to one of `State`, `SimpleState`, `StateTakingInput` or `StateUsingMappedState`. A state object can receive arguments from a defined input. It can also be passed anything from the previous state
+
+ The DSL was inspired by [RxAutomaton](https://github.com/inamiy/RxAutomaton).
+
+[![Build Status](https://travis-ci.org/jordanhamill/Stated.svg?branch=master)](https://travis-ci.org/jordanhamill/Stated)
+![Swift Package Manager Compatible](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
+[![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+![CocoaPods Compatible](https://img.shields.io/badge/pod-ios%20%7C%20macos%20%7C%20watchos%20%7C%20tvos-lightgrey.svg)
 
 ## Example State Machine
 
@@ -193,4 +200,14 @@ github "jordanhamill/Stated"
 Run the following command:
 ```
 $ carthage update
+```
+
+### Swift Package Manager
+
+Add Stated as a dependency to your `package.swift`
+
+```
+dependencies: [
+    .Package(url: "https://github.com/jordanhamill/Stated.git", majorVersion: 1)
+]
 ```
