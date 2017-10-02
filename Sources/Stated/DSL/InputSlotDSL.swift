@@ -1,3 +1,4 @@
+
 extension InputSlot {
     ///
     /// Define the current state the system must be in for a valid transition.

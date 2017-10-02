@@ -193,5 +193,13 @@ class SimpleStatedTests: XCTestCase {
         appLauncher.initialize()
         XCTAssertEqual(visitedStateIds, expectedStateIds)
     }
+
+    static var allTests = [
+        ("testInitalState", testInitalState),
+        ("testFinalState", testFinalState),
+        ("testVisitedStatesForUpgradingLoggedIn", testVisitedStatesForUpgradingLoggedIn),
+        ("testVisitedStatesForNonUpgradeLoggedIn", testVisitedStatesForNonUpgradeLoggedIn),
+        ("testVisitedStatesForNonUpgradeLoggedOut", testVisitedStatesForNonUpgradeLoggedOut)
+    ]
 }
 
