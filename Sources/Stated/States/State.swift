@@ -4,8 +4,8 @@ public typealias NoArguments = Void
 ///
 ///
 public protocol State: AnyState {
-    associatedtype Arguments
-    associatedtype MappedState
+    associatedtype Arguments = NoArguments
+    associatedtype MappedState = Void
 
     static func create(arguments: Arguments, state: MappedState) -> Self
 }

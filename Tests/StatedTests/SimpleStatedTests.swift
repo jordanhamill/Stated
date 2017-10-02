@@ -4,35 +4,12 @@ import XCTest
 class SimpleStatedTests: XCTestCase {
     class AppLauncher {
 
-        struct UninitializedState: SimpleState {
-            public typealias Arguments = Void
-            public typealias MappedState = Void
-        }
-
-        struct InitializedState: SimpleState {
-            public typealias Arguments = Void
-            public typealias MappedState = Void
-        }
-
-        struct UpgradingState: SimpleState {
-            public typealias Arguments = Void
-            public typealias MappedState = Void
-        }
-
-        struct IndexingState: SimpleState {
-            public typealias Arguments = Void
-            public typealias MappedState = Void
-        }
-
-        struct LoggedInState: SimpleState {
-            public typealias Arguments = Void
-            public typealias MappedState = Void
-        }
-
-        struct LoggedOutState: SimpleState {
-            public typealias Arguments = Void
-            public typealias MappedState = Void
-        }
+        struct UninitializedState: SimpleState { }
+        struct InitializedState: SimpleState { }
+        struct UpgradingState: SimpleState { }
+        struct IndexingState: SimpleState { }
+        struct LoggedInState: SimpleState { }
+        struct LoggedOutState: SimpleState { }
 
         struct States {
             static let uninitialized = UninitializedState.slot
