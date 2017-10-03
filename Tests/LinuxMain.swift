@@ -1,14 +1,5 @@
-// import XCTest
-// @testable import StatedTests
-
-// XCTMain([
-//     testCase(StatedTests.allTests),
-// ])
-
-
 import XCTest
-@testable import SimpleStatedTests
-@testable import InputArgsAndMappedStateTests
+@testable import StatedTests
 
 XCTMain([
     testCase(SimpleStatedTests.allTests),
