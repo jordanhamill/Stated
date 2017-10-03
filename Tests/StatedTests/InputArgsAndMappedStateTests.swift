@@ -166,4 +166,12 @@ class InputArgsAndMappedStateTests: XCTestCase {
             XCTAssertEqual(state.deepLink, .viewPost)
         }
     }
+
+    static var allTests = [
+        ("testInitalState", testInitalState),
+        ("testFinalStateWhenLoggedIn", testFinalStateWhenLoggedIn),
+        ("testFinalStateWhenLoggedOut", testFinalStateWhenLoggedOut),
+        ("testLocalStateReceivesInputArgumentsWhenLoggedInFromFresh", testLocalStateReceivesInputArgumentsWhenLoggedInFromFresh),
+        ("testLocalStateIsMappedAndForwardedWhenLoggedInFromUrl", testLocalStateIsMappedAndForwardedWhenLoggedInFromUrl)
+    ]
 }
